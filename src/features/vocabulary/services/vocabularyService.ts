@@ -20,6 +20,11 @@ export const vocabulary_service = {
       `/vocabulary/topics/${encodeURIComponent(id)}`,
     ),
 
+  get_topic_review: (id: string) =>
+    request_json<VocabularyTopicDetail>(
+      `/vocabulary/topics/${encodeURIComponent(id)}/review`,
+    ),
+
   submit_answer: (input: SubmitAnswerInput) =>
     request_json<SubmitAnswerResult>('/vocabulary/answers', {
       method: 'POST',
@@ -30,5 +35,11 @@ export const vocabulary_service = {
 
   async reset_progress(): Promise<void> {
     await api_fetch('/vocabulary/progress', { method: 'DELETE' })
+  },
+
+  async reset_topic(id: string): Promise<void> {
+    await api_fetch(`/vocabulary/topics/${encodeURIComponent(id)}/progress`, {
+      method: 'DELETE',
+    })
   },
 }

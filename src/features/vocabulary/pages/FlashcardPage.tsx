@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded'
 import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded'
@@ -16,11 +17,13 @@ import {
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
 } from '@mui/material'
 import { alpha, type Theme } from '@mui/material/styles'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AnswerOutcome } from '../components/AnswerOutcome'
 import { LearningHeader } from '../components/LearningHeader'
+import { useKeyboardOpen } from '../hooks/useKeyboardOpen'
 import { useStudyDirection } from '../hooks/useStudyDirection'
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer'
 import { useTopic } from '../hooks/useTopic'
@@ -48,15 +51,16 @@ const outcome_color = (theme: Theme, outcome: Outcome | null) =>
         ? theme.palette.text.secondary
         : theme.palette.primary.main
 
-const face_sx = (theme: Theme, outcome: Outcome | null) => ({
+// compact: the on-screen keyboard is up, so the card shrinks to stay visible above it.
+const face_sx = (theme: Theme, outcome: Outcome | null, compact: boolean) => ({
   gridArea: '1 / 1',
   backfaceVisibility: 'hidden',
   WebkitBackfaceVisibility: 'hidden',
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
-  minHeight: { xs: 300, sm: 340 },
-  p: { xs: 3, sm: 5 },
+  minHeight: compact ? 0 : { xs: 300, sm: 340 },
+  p: compact ? 2 : { xs: 3, sm: 5 },
   borderRadius: 4,
   border: 2,
   borderColor: outcome
@@ -158,13 +162,14 @@ function CardBack({ word }: { word: VocabularyWord }) {
   )
 }
 
-export function FlashcardPage() {
+/** review: study only the words last answered wrong; a correct answer marks them learned. */
+export function FlashcardPage({ review = false }: { review?: boolean }) {
   const { topic_id = '' } = useParams()
   const navigate = useNavigate()
-  const { topic, loading, error, reload } = useTopic(topic_id)
+  const { topic, loading, error, reload } = useTopic(topic_id, review)
   const [direction] = useStudyDirection()
   const { grading, failed, result, submit, clear } = useSubmitAnswer(
-    'flashcard',
+    review ? 'review' : 'flashcard',
     direction,
   )
   const [word_index, set_word_index] = useState(0)
@@ -172,6 +177,25 @@ export function FlashcardPage() {
   const [finished, set_finished] = useState(false)
   const [tally, set_tally] = useState({ correct: 0, wrong: 0, ungraded: 0 })
   const last_answer = useRef('')
+  const input_ref = useRef<HTMLInputElement>(null)
+  const keyboard_open = useKeyboardOpen()
+  // Touch devices: don't pop the keyboard over a card the learner hasn't read yet.
+  const is_touch = useMediaQuery('(hover: none) and (pointer: coarse)', { noSsr: true })
+
+  // iOS scrolls the page to keep the input above the keyboard, pushing the card
+  // under the sticky header. Once the card has compacted, bring it back into view.
+  useEffect(() => {
+    if (!keyboard_open) return
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0 })
+      const input = input_ref.current
+      const viewport = window.visualViewport
+      if (input && viewport && input.getBoundingClientRect().bottom > viewport.height) {
+        input.scrollIntoView({ block: 'end' })
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [keyboard_open])
 
   useEffect(() => {
     set_word_index(0)
@@ -179,13 +203,36 @@ export function FlashcardPage() {
     set_finished(false)
     set_tally({ correct: 0, wrong: 0, ungraded: 0 })
     clear()
-  }, [topic_id, clear])
+  }, [topic_id, review, clear])
 
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
         <CircularProgress />
       </Box>
+    )
+  }
+
+  if (review && topic && !error && !topic.words.length) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
+        <CheckCircleOutlineRoundedIcon color="success" sx={{ fontSize: 72 }} />
+        <Typography variant="h5" fontWeight={750} mt={2}>
+          Không còn từ nào cần học lại
+        </Typography>
+        <Typography color="text.secondary" mt={1}>
+          Bạn đã trả lời đúng hết các từ của chủ đề {topic.title}.
+        </Typography>
+        <Stack direction="row" justifyContent="center" spacing={1.5} mt={3}>
+          <Button onClick={() => navigate('/')}>Về trang chủ</Button>
+          <Button
+            variant="contained"
+            onClick={() => navigate(`/topics/${topic.id}/flashcards`)}
+          >
+            Học thẻ
+          </Button>
+        </Stack>
+      </Container>
     )
   }
 
@@ -249,6 +296,8 @@ export function FlashcardPage() {
     set_finished(false)
     set_tally({ correct: 0, wrong: 0, ungraded: 0 })
     clear()
+    // Review refetches so words answered correctly this round drop out.
+    if (review) reload()
   }
 
   const prompt = prompt_of(word, direction)
@@ -262,7 +311,7 @@ export function FlashcardPage() {
       })}
     >
       <LearningHeader
-        title={topic.title}
+        title={review ? `Học lại · ${topic.title}` : topic.title}
         current={finished ? topic.words.length : word_index + 1}
         total={topic.words.length}
         counter_label={`Từ ${finished ? topic.words.length : word_index + 1}/${topic.words.length}`}
@@ -277,7 +326,11 @@ export function FlashcardPage() {
         }
       />
 
-      <Container maxWidth="sm" component="main" sx={{ py: { xs: 3, sm: 6 } }}>
+      <Container
+        maxWidth="sm"
+        component="main"
+        sx={{ py: keyboard_open ? 1.5 : { xs: 3, sm: 6 } }}
+      >
         {finished ? (
           <Paper
             variant="outlined"
@@ -288,7 +341,7 @@ export function FlashcardPage() {
               sx={{ fontSize: 72 }}
             />
             <Typography variant="h4" fontWeight={750} mt={2}>
-              Hoàn thành lượt học!
+              {review ? 'Hoàn thành lượt học lại!' : 'Hoàn thành lượt học!'}
             </Typography>
             <Typography color="text.secondary" mt={1}>
               {tally.correct} đúng · {tally.wrong} sai
@@ -304,20 +357,53 @@ export function FlashcardPage() {
               spacing={1.5}
               mt={4}
             >
-              <Button
-                variant="outlined"
-                startIcon={<ReplayRoundedIcon />}
-                onClick={restart}
-              >
-                Học lại
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<QuizOutlinedIcon />}
-                onClick={() => navigate(`/topics/${topic.id}/quiz`)}
-              >
-                Làm quiz
-              </Button>
+              {review ? (
+                <>
+                  <Button
+                    variant="outlined"
+                    startIcon={<HomeRoundedIcon />}
+                    onClick={() => navigate('/')}
+                  >
+                    Trang chủ
+                  </Button>
+                  {tally.wrong > 0 && (
+                    <Button
+                      variant="contained"
+                      startIcon={<ReplayRoundedIcon />}
+                      onClick={restart}
+                    >
+                      Học lại {tally.wrong} từ sai
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outlined"
+                    startIcon={<ReplayRoundedIcon />}
+                    onClick={restart}
+                  >
+                    Học lượt mới
+                  </Button>
+                  {tally.wrong > 0 && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<ReplayRoundedIcon />}
+                      onClick={() => navigate(`/topics/${topic.id}/review`)}
+                    >
+                      Học lại {tally.wrong} từ sai
+                    </Button>
+                  )}
+                  <Button
+                    variant="contained"
+                    startIcon={<QuizOutlinedIcon />}
+                    onClick={() => navigate(`/topics/${topic.id}/quiz`)}
+                  >
+                    Làm quiz
+                  </Button>
+                </>
+              )}
             </Stack>
           </Paper>
         ) : (
@@ -326,7 +412,7 @@ export function FlashcardPage() {
             <Box
               sx={(theme) => ({
                 position: 'relative',
-                mb: remaining > 0 ? 3 : 0,
+                mb: remaining > 0 && !keyboard_open ? 3 : 0,
                 '&::before, &::after': {
                   content: '""',
                   position: 'absolute',
@@ -337,12 +423,12 @@ export function FlashcardPage() {
                   bgcolor: 'background.paper',
                 },
                 '&::before': {
-                  display: remaining > 1 ? 'block' : 'none',
+                  display: remaining > 1 && !keyboard_open ? 'block' : 'none',
                   transform: 'translateY(22px) scale(0.92)',
                   opacity: 0.5,
                 },
                 '&::after': {
-                  display: remaining > 0 ? 'block' : 'none',
+                  display: remaining > 0 && !keyboard_open ? 'block' : 'none',
                   transform: 'translateY(11px) scale(0.96)',
                   opacity: 0.8,
                 },
@@ -382,23 +468,28 @@ export function FlashcardPage() {
                     <Box
                       inert={answered}
                       sx={(theme) => ({
-                        ...face_sx(theme, null),
+                        ...face_sx(theme, null, keyboard_open),
                         alignItems: 'center',
                         textAlign: 'center',
-                        gap: 2,
+                        gap: keyboard_open ? 1 : 2,
                       })}
                     >
-                      <Chip
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        label={word.part_of_speech ?? 'từ vựng'}
-                        sx={{ fontWeight: 650 }}
-                      />
+                      {!keyboard_open && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label={word.part_of_speech ?? 'từ vựng'}
+                          sx={{ fontWeight: 650 }}
+                        />
+                      )}
                       <Typography
                         variant="h2"
                         fontWeight={750}
-                        sx={{ fontSize: { xs: 42, sm: 56 }, wordBreak: 'break-word' }}
+                        sx={{
+                          fontSize: keyboard_open ? 34 : { xs: 42, sm: 56 },
+                          wordBreak: 'break-word',
+                        }}
                       >
                         {prompt}
                       </Typography>
@@ -416,7 +507,7 @@ export function FlashcardPage() {
                     <Box
                       inert={!answered}
                       sx={(theme) => ({
-                        ...face_sx(theme, outcome),
+                        ...face_sx(theme, outcome, keyboard_open),
                         transform: 'rotateY(180deg)',
                       })}
                     >
@@ -427,11 +518,12 @@ export function FlashcardPage() {
               </Box>
             </Box>
 
-            <Box sx={{ mt: 4 }}>
+            <Box sx={{ mt: keyboard_open ? 2 : 4 }}>
               <TextField
                 fullWidth
-                autoFocus
+                autoFocus={!is_touch}
                 key={word.id}
+                inputRef={input_ref}
                 placeholder={`${answer_label(direction)}…`}
                 slotProps={{ htmlInput: { 'aria-label': answer_label(direction) } }}
                 value={answer_input}
@@ -451,7 +543,7 @@ export function FlashcardPage() {
                   '& input': { textAlign: 'center', py: 2 },
                 }}
               />
-              {!answered && !grading && (
+              {!grading && (
                 <Typography
                   variant="caption"
                   color="text.secondary"
@@ -460,7 +552,15 @@ export function FlashcardPage() {
                   mt={1}
                   sx={{ display: { xs: 'none', sm: 'block' } }}
                 >
-                  Nhấn <b>Enter</b> để kiểm tra · <b>Esc</b> để bỏ qua
+                  {answered ? (
+                    <>
+                      Nhấn <b>Enter</b> để {is_last ? 'xem kết quả' : 'tiếp tục'}
+                    </>
+                  ) : (
+                    <>
+                      Nhấn <b>Enter</b> để kiểm tra · <b>Esc</b> để bỏ qua
+                    </>
+                  )}
                 </Typography>
               )}
               <AnswerOutcome
@@ -482,8 +582,11 @@ export function FlashcardPage() {
                     Bỏ qua
                   </Button>
                 )}
+                {/* Distinct keys remount the button so autoFocus moves focus to
+                    "Tiếp" once graded, letting Enter continue to the next card. */}
                 {answered ? (
                   <Button
+                    key="next"
                     autoFocus
                     size="large"
                     variant="contained"
@@ -496,6 +599,7 @@ export function FlashcardPage() {
                   </Button>
                 ) : (
                   <Button
+                    key="check"
                     size="large"
                     variant="contained"
                     disabled={grading || !answer_input.trim()}
