@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded'
@@ -28,6 +28,7 @@ import { useStudyDirection } from '../hooks/useStudyDirection'
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer'
 import { useTopic } from '../hooks/useTopic'
 import type { SubmitAnswerResult, VocabularyWord } from '../types/vocabulary'
+import { shuffle } from '../utils/createQuiz'
 import { answer_label, prompt_of, speak } from '../utils/direction'
 import { pop, reduced_motion, shake, slide_in } from '../utils/motion'
 
@@ -162,7 +163,10 @@ function CardBack({ word }: { word: VocabularyWord }) {
   )
 }
 
-/** review: study only the words last answered wrong; a correct answer marks them learned. */
+/**
+ * Flashcards cover only words not yet studied; review covers only words last
+ * answered wrong (a correct answer marks them learned). Both run shuffled.
+ */
 export function FlashcardPage({ review = false }: { review?: boolean }) {
   const { topic_id = '' } = useParams()
   const navigate = useNavigate()
@@ -178,6 +182,18 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
   const [tally, set_tally] = useState({ correct: 0, wrong: 0, ungraded: 0 })
   const last_answer = useRef('')
   const input_ref = useRef<HTMLInputElement>(null)
+  // Shuffled once per fetch so the order stays put while answering.
+  const deck = useMemo(
+    () =>
+      topic
+        ? shuffle(
+            review
+              ? topic.words
+              : topic.words.filter((w) => w.status === 'new'),
+          )
+        : [],
+    [topic, review],
+  )
   const keyboard_open = useKeyboardOpen()
   // Touch devices: don't pop the keyboard over a card the learner hasn't read yet.
   const is_touch = useMediaQuery('(hover: none) and (pointer: coarse)', { noSsr: true })
@@ -213,23 +229,43 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
     )
   }
 
-  if (review && topic && !error && !topic.words.length) {
+  if (topic && !error && topic.words.length && !deck.length) {
     return (
       <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
         <CheckCircleOutlineRoundedIcon color="success" sx={{ fontSize: 72 }} />
         <Typography variant="h5" fontWeight={750} mt={2}>
-          Không còn từ nào cần học lại
+          {review ? 'Không còn từ nào cần học lại' : 'Bạn đã học hết từ mới'}
         </Typography>
         <Typography color="text.secondary" mt={1}>
-          Bạn đã trả lời đúng hết các từ của chủ đề {topic.title}.
+          {review
+            ? `Bạn đã trả lời đúng hết các từ của chủ đề ${topic.title}.`
+            : topic.wrong > 0
+              ? `Còn ${topic.wrong} từ sai trong chủ đề ${topic.title}, hãy học lại nhé.`
+              : `Bạn đã hoàn thành chủ đề ${topic.title}.`}
         </Typography>
-        <Stack direction="row" justifyContent="center" spacing={1.5} mt={3}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="center"
+          spacing={1.5}
+          mt={3}
+        >
           <Button onClick={() => navigate('/')}>Về trang chủ</Button>
+          {!review && topic.wrong > 0 && (
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<ReplayRoundedIcon />}
+              onClick={() => navigate(`/topics/${topic.id}/review`)}
+            >
+              Học lại {topic.wrong} từ sai
+            </Button>
+          )}
           <Button
             variant="contained"
-            onClick={() => navigate(`/topics/${topic.id}/flashcards`)}
+            startIcon={<QuizOutlinedIcon />}
+            onClick={() => navigate(`/topics/${topic.id}/quiz`)}
           >
-            Học thẻ
+            Làm quiz
           </Button>
         </Stack>
       </Container>
@@ -254,9 +290,9 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
     )
   }
 
-  const word = topic.words[word_index]
-  const is_last = word_index === topic.words.length - 1
-  const remaining = topic.words.length - word_index - 1
+  const word = deck[word_index]
+  const is_last = word_index === deck.length - 1
+  const remaining = deck.length - word_index - 1
   const answered = result !== null
   const outcome = outcome_of(result)
 
@@ -296,8 +332,8 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
     set_finished(false)
     set_tally({ correct: 0, wrong: 0, ungraded: 0 })
     clear()
-    // Review refetches so words answered correctly this round drop out.
-    if (review) reload()
+    // Refetch so words answered this round drop out of the next deck.
+    reload()
   }
 
   const prompt = prompt_of(word, direction)
@@ -312,9 +348,9 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
     >
       <LearningHeader
         title={review ? `Học lại · ${topic.title}` : topic.title}
-        current={finished ? topic.words.length : word_index + 1}
-        total={topic.words.length}
-        counter_label={`Từ ${finished ? topic.words.length : word_index + 1}/${topic.words.length}`}
+        current={finished ? deck.length : word_index + 1}
+        total={deck.length}
+        counter_label={`Từ ${finished ? deck.length : word_index + 1}/${deck.length}`}
         action={
           <Button
             variant="outlined"
@@ -383,7 +419,7 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                     startIcon={<ReplayRoundedIcon />}
                     onClick={restart}
                   >
-                    Học lượt mới
+                    Học tiếp
                   </Button>
                   {tally.wrong > 0 && (
                     <Button

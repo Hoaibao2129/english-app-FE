@@ -15,3 +15,7 @@ export function pick_quiz_words(
 
   return pool.slice(0, size)
 }
+
+/** Shuffled copy of all words, so each session runs in a fresh order. */
+export const shuffle = (words: VocabularyWord[]) =>
+  pick_quiz_words(words, words.length)
