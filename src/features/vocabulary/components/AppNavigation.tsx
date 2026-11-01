@@ -3,8 +3,10 @@ import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
 import HeadphonesOutlinedIcon from '@mui/icons-material/HeadphonesOutlined'
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import {
   Box,
+  Button,
   Chip,
   Divider,
   Drawer,
@@ -15,47 +17,51 @@ import {
   Typography,
 } from '@mui/material'
 
-export const navigationWidth = 224
+import { useAuth } from '../../auth/hooks/useAuth'
+
+export const navigation_width = 224
 
 interface AppNavigationProps {
-  mobileOpen: boolean
-  onMobileClose: () => void
+  mobile_open: boolean
+  on_mobile_close: () => void
 }
 
-const navigationItems = [
+const navigation_items = [
   {
     label: 'Trang chủ',
     icon: <HomeOutlinedIcon />,
     active: false,
-    comingSoon: false,
+    coming_soon: false,
   },
   {
     label: '1000 từ vựng',
     icon: <AutoStoriesOutlinedIcon />,
     active: true,
-    comingSoon: false,
+    coming_soon: false,
   },
   {
     label: 'Ngữ pháp',
     icon: <MenuBookOutlinedIcon />,
     active: false,
-    comingSoon: true,
+    coming_soon: true,
   },
   {
     label: 'Luyện nghe',
     icon: <HeadphonesOutlinedIcon />,
     active: false,
-    comingSoon: true,
+    coming_soon: true,
   },
   {
     label: 'Thống kê',
     icon: <BarChartOutlinedIcon />,
     active: false,
-    comingSoon: true,
+    coming_soon: true,
   },
 ]
 
 function NavigationContent() {
+  const { user, logout } = useAuth()
+
   return (
     <Box sx={{ height: '100%', px: 2, py: 3 }}>
       <Typography
@@ -67,11 +73,11 @@ function NavigationContent() {
       </Typography>
 
       <List disablePadding>
-        {navigationItems.map((item) => (
+        {navigation_items.map((item) => (
           <ListItemButton
             key={item.label}
             selected={item.active}
-            disabled={item.comingSoon}
+            disabled={item.coming_soon}
             sx={{
               minHeight: 44,
               borderRadius: 2,
@@ -102,7 +108,7 @@ function NavigationContent() {
                 },
               }}
             />
-            {item.comingSoon && (
+            {item.coming_soon && (
               <Chip
                 label="Sắp có"
                 size="small"
@@ -121,29 +127,53 @@ function NavigationContent() {
       >
         Học mỗi ngày, tiến bộ mỗi ngày.
       </Typography>
+
+      {user && (
+        <Box sx={{ px: 1.5, mt: 2 }}>
+          <Typography variant="body2" fontWeight={700} noWrap>
+            {user.display_name || user.email}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            sx={{ display: 'block' }}
+          >
+            {user.email}
+          </Typography>
+          <Button
+            size="small"
+            startIcon={<LogoutOutlinedIcon />}
+            onClick={() => void logout()}
+            sx={{ mt: 1, px: 0 }}
+          >
+            Đăng xuất
+          </Button>
+        </Box>
+      )}
     </Box>
   )
 }
 
 export function AppNavigation({
-  mobileOpen,
-  onMobileClose,
+  mobile_open,
+  on_mobile_close,
 }: AppNavigationProps) {
   return (
     <Box
       component="nav"
-      sx={{ width: { md: navigationWidth }, flexShrink: { md: 0 } }}
+      sx={{ width: { md: navigation_width }, flexShrink: { md: 0 } }}
       aria-label="Điều hướng chính"
     >
       <Drawer
         variant="temporary"
-        open={mobileOpen}
-        onClose={onMobileClose}
+        open={mobile_open}
+        onClose={on_mobile_close}
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
           '& .MuiDrawer-paper': {
-            width: navigationWidth,
+            width: navigation_width,
             borderRightColor: 'divider',
           },
         }}
@@ -157,7 +187,7 @@ export function AppNavigation({
         sx={{
           display: { xs: 'none', md: 'block' },
           '& .MuiDrawer-paper': {
-            width: navigationWidth,
+            width: navigation_width,
             boxSizing: 'border-box',
             borderRightColor: 'divider',
           },

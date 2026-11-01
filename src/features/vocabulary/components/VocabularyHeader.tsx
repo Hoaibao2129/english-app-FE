@@ -9,24 +9,31 @@ import {
   IconButton,
   LinearProgress,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Toolbar,
   Typography,
 } from '@mui/material'
+import type { Direction } from '../types/vocabulary'
 
 interface VocabularyHeaderProps {
-  learnedWords: number
-  totalWords: number
-  onReset: () => void
-  onMenuClick: () => void
+  learned_words: number
+  total_words: number
+  direction: Direction
+  on_direction_change: (direction: Direction) => void
+  on_reset: () => void
+  on_menu_click: () => void
 }
 
 export function VocabularyHeader({
-  learnedWords,
-  totalWords,
-  onReset,
-  onMenuClick,
+  learned_words,
+  total_words,
+  direction,
+  on_direction_change,
+  on_reset,
+  on_menu_click,
 }: VocabularyHeaderProps) {
-  const progress = totalWords ? (learnedWords / totalWords) * 100 : 0
+  const progress = total_words ? (learned_words / total_words) * 100 : 0
 
   return (
     <AppBar
@@ -38,7 +45,7 @@ export function VocabularyHeader({
       <Container maxWidth="lg">
         <Toolbar disableGutters sx={{ minHeight: { xs: 72, md: 80 } }}>
           <IconButton
-            onClick={onMenuClick}
+            onClick={on_menu_click}
             aria-label="Mở menu"
             sx={{ display: { xs: 'inline-flex', md: 'none' }, mr: 1 }}
           >
@@ -88,7 +95,7 @@ export function VocabularyHeader({
                   Tiến độ
                 </Typography>
                 <Typography variant="caption" fontWeight={700}>
-                  {learnedWords}/{totalWords}
+                  {learned_words}/{total_words}
                 </Typography>
               </Stack>
               <LinearProgress
@@ -97,9 +104,25 @@ export function VocabularyHeader({
                 sx={{ height: 6, borderRadius: 10 }}
               />
             </Box>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={direction}
+              aria-label="Chiều học"
+              onChange={(_, next: Direction | null) => {
+                if (next) on_direction_change(next)
+              }}
+            >
+              <ToggleButton value="en_vi" sx={{ whiteSpace: 'nowrap' }}>
+                Anh → Việt
+              </ToggleButton>
+              <ToggleButton value="vi_en" sx={{ whiteSpace: 'nowrap' }}>
+                Việt → Anh
+              </ToggleButton>
+            </ToggleButtonGroup>
             <Button
               color="inherit"
-              onClick={onReset}
+              onClick={on_reset}
               startIcon={<RestartAltRoundedIcon />}
               sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
             >

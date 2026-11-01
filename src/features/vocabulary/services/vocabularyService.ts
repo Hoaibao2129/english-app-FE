@@ -1,16 +1,34 @@
-import { mockTopics } from '../data/mockVocabulary'
-import type { VocabularyTopic } from '../types/vocabulary'
+import type {
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+  Summary,
+  VocabularyTopic,
+  VocabularyTopicDetail,
+} from '../types/vocabulary'
+import { api_fetch } from '../../auth/services/apiClient'
 
-const delay = (duration: number) =>
-  new Promise((resolve) => window.setTimeout(resolve, duration))
+async function request_json<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await api_fetch(path, init)
+  return (await response.json()) as T
+}
 
-/**
- * API boundary for the vocabulary feature.
- * Replace the mock implementation with your backend request later.
- */
-export const vocabularyService = {
-  async getTopics(): Promise<VocabularyTopic[]> {
-    await delay(250)
-    return structuredClone(mockTopics)
+export const vocabulary_service = {
+  get_topics: () => request_json<VocabularyTopic[]>('/vocabulary/topics'),
+
+  get_topic: (id: string) =>
+    request_json<VocabularyTopicDetail>(
+      `/vocabulary/topics/${encodeURIComponent(id)}`,
+    ),
+
+  submit_answer: (input: SubmitAnswerInput) =>
+    request_json<SubmitAnswerResult>('/vocabulary/answers', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  get_summary: () => request_json<Summary>('/vocabulary/summary'),
+
+  async reset_progress(): Promise<void> {
+    await api_fetch('/vocabulary/progress', { method: 'DELETE' })
   },
 }

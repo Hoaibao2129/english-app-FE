@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded'
@@ -17,48 +18,54 @@ import {
   Typography,
 } from '@mui/material'
 import { useNavigate, useParams } from 'react-router-dom'
+import { AnswerOutcome } from '../components/AnswerOutcome'
 import { LearningHeader } from '../components/LearningHeader'
+import { useStudyDirection } from '../hooks/useStudyDirection'
+import { useSubmitAnswer } from '../hooks/useSubmitAnswer'
 import { useTopic } from '../hooks/useTopic'
-import type { QuizQuestion } from '../types/vocabulary'
-import { createQuiz } from '../utils/createQuiz'
+import type {
+  SubmitAnswerResult,
+  VocabularyWord,
+} from '../types/vocabulary'
+import { pick_quiz_words } from '../utils/createQuiz'
+import {
+  answer_label,
+  direction_label,
+  prompt_of,
+  speak,
+} from '../utils/direction'
 
 interface QuizAnswer {
-  question: QuizQuestion
-  selectedAnswer: string
+  word: VocabularyWord
+  answer: string
+  result: SubmitAnswerResult
 }
 
-const normalizeAnswer = (value: string) =>
-  value
-    .trim()
-    .toLocaleLowerCase('vi')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-
 export function QuizPage() {
-  const { topicId = '' } = useParams()
+  const { topic_id = '' } = useParams()
   const navigate = useNavigate()
-  const { topic, loading } = useTopic(Number(topicId))
-  const [questions, setQuestions] = useState<QuizQuestion[]>([])
-  const [questionIndex, setQuestionIndex] = useState(0)
-  const [answerInput, setAnswerInput] = useState('')
-  const [checked, setChecked] = useState(false)
-  const [answers, setAnswers] = useState<QuizAnswer[]>([])
-  const [finished, setFinished] = useState(false)
+  const { topic, loading, error, reload } = useTopic(topic_id)
+  const [direction] = useStudyDirection()
+  const { grading, failed, result, submit, clear } = useSubmitAnswer(
+    'quiz',
+    direction,
+  )
+  const [questions, set_questions] = useState<VocabularyWord[]>([])
+  const [question_index, set_question_index] = useState(0)
+  const [answer_input, set_answer_input] = useState('')
+  const [answers, set_answers] = useState<QuizAnswer[]>([])
+  const [finished, set_finished] = useState(false)
+  const last_answer = useRef('')
 
   useEffect(() => {
-    if (topic) setQuestions(createQuiz(topic.words))
+    if (topic) set_questions(pick_quiz_words(topic.words))
   }, [topic])
 
-  const score = useMemo(
-    () =>
-      answers.filter(
-        ({ question, selectedAnswer: answer }) =>
-          normalizeAnswer(answer) === normalizeAnswer(question.correctAnswer),
-      ).length,
-    [answers],
-  )
-  const skipped = answers.filter(({ selectedAnswer: answer }) => !answer).length
+  const score = answers.filter(({ result: r }) => r.is_correct === true).length
+  const skipped = answers.filter(({ answer }) => !answer).length
+  const ungraded = answers.filter(
+    ({ answer, result: r }) => answer && r.is_correct === null,
+  ).length
 
   if (loading) {
     return (
@@ -68,69 +75,73 @@ export function QuizPage() {
     )
   }
 
-  if (!topic || topic.words.length < 4) {
+  if (error || !topic || topic.words.length < 1) {
     return (
       <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
         <Typography variant="h5" fontWeight={750}>
-          Chưa đủ dữ liệu để tạo quiz
+          {error ? 'Không kết nối được máy chủ' : 'Chưa đủ dữ liệu để tạo quiz'}
         </Typography>
-        <Typography color="text.secondary" mt={1}>
-          Quiz cần ít nhất 4 từ. Dữ liệu sẽ được bổ sung từ backend.
-        </Typography>
-        <Button onClick={() => navigate('/')} sx={{ mt: 3 }}>
-          Về trang chủ
-        </Button>
+        <Stack direction="row" justifyContent="center" spacing={1.5} mt={3}>
+          {error && (
+            <Button variant="outlined" onClick={reload}>
+              Thử lại
+            </Button>
+          )}
+          <Button onClick={() => navigate('/')}>Về trang chủ</Button>
+        </Stack>
       </Container>
     )
   }
 
-  const restart = () => {
-    setQuestions(createQuiz(topic.words))
-    setQuestionIndex(0)
-    setAnswerInput('')
-    setChecked(false)
-    setAnswers([])
-    setFinished(false)
-  }
-
-  const saveAnswerAndContinue = (answer: string) => {
-    const nextAnswers = [
-      ...answers,
-      { question: questions[questionIndex], selectedAnswer: answer },
-    ]
-    setAnswers(nextAnswers)
-
-    if (questionIndex === questions.length - 1) {
-      setFinished(true)
-    } else {
-      setQuestionIndex((current) => current + 1)
-      setAnswerInput('')
-      setChecked(false)
-    }
-  }
-
-  const handleCheckOrContinue = () => {
-    if (!answerInput.trim()) return
-    if (checked) {
-      saveAnswerAndContinue(answerInput.trim())
-      return
-    }
-    setChecked(true)
-  }
-
   if (!questions.length) return null
 
-  const question = questions[questionIndex]
-  const isCorrect =
-    normalizeAnswer(answerInput) === normalizeAnswer(question.correctAnswer)
+  const question = questions[question_index]
+  const is_last = question_index === questions.length - 1
+  const answered = result !== null
+
+  const restart = () => {
+    set_questions(pick_quiz_words(topic.words))
+    set_question_index(0)
+    set_answer_input('')
+    set_answers([])
+    set_finished(false)
+    clear()
+  }
+
+  const run = async (answer: string) => {
+    last_answer.current = answer
+    const graded = await submit(question.id, answer)
+    if (!graded) return
+    set_answers((current) => [...current, { word: question, answer, result: graded }])
+    // A skip has nothing to review, so move on right away.
+    if (!answer) go_next()
+  }
+
+  const go_next = () => {
+    clear()
+    set_answer_input('')
+    if (is_last) set_finished(true)
+    else set_question_index((current) => current + 1)
+  }
+
+  const handle_check_or_continue = () => {
+    if (grading) return
+    if (answered) {
+      go_next()
+      return
+    }
+    if (answer_input.trim()) void run(answer_input.trim())
+  }
+
+  const prompt = prompt_of(question, direction)
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <LearningHeader
         title="Ôn tập hôm nay"
-        current={finished ? questions.length : questionIndex + 1}
+        current={finished ? questions.length : question_index + 1}
         total={questions.length}
-        counterLabel={`Câu ${finished ? questions.length : questionIndex + 1}/${questions.length}`}
+        counter_label={`Câu ${finished ? questions.length : question_index + 1}/${questions.length}`}
         stats={
           <Stack direction="row" spacing={2}>
             <Typography variant="body2" color="success.main" fontWeight={700}>
@@ -139,6 +150,15 @@ export function QuizPage() {
             <Typography variant="body2" color="text.secondary" fontWeight={700}>
               {skipped} bỏ qua
             </Typography>
+            {ungraded > 0 && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                fontWeight={700}
+              >
+                {ungraded} chưa chấm
+              </Typography>
+            )}
           </Stack>
         }
       />
@@ -173,6 +193,11 @@ export function QuizPage() {
                     ? 'Làm rất tốt!'
                     : 'Tiếp tục cố gắng nhé!'}
               </Typography>
+              {ungraded > 0 && (
+                <Typography color="text.secondary" variant="body2" mt={1}>
+                  {ungraded} câu chưa chấm được
+                </Typography>
+              )}
               <Stack
                 direction={{ xs: 'column', sm: 'row' }}
                 justifyContent="center"
@@ -200,48 +225,46 @@ export function QuizPage() {
               Xem lại đáp án
             </Typography>
             <Stack spacing={1.5}>
-              {answers.map(({ question: item, selectedAnswer: answer }, index) => {
-                const correct =
-                  normalizeAnswer(answer) ===
-                  normalizeAnswer(item.correctAnswer)
-                return (
-                  <Paper
-                    key={item.wordId}
-                    variant="outlined"
-                    sx={{ p: 2, borderRadius: 2.5 }}
-                  >
-                    <Stack direction="row" spacing={1.5}>
-                      {correct ? (
-                        <CheckCircleRoundedIcon color="success" />
-                      ) : (
-                        <CloseRoundedIcon color="error" />
+              {answers.map(({ word, answer, result: graded }, index) => (
+                <Paper
+                  key={word.id}
+                  variant="outlined"
+                  sx={{ p: 2, borderRadius: 2.5 }}
+                >
+                  <Stack direction="row" spacing={1.5}>
+                    {graded.is_correct === true ? (
+                      <CheckCircleRoundedIcon color="success" />
+                    ) : graded.is_correct === false ? (
+                      <CloseRoundedIcon color="error" />
+                    ) : (
+                      <HelpOutlineRoundedIcon color="disabled" />
+                    )}
+                    <Box>
+                      <Typography fontWeight={700}>
+                        {index + 1}. {prompt_of(word, direction)}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={
+                          !answer || graded.is_correct === null
+                            ? 'text.secondary'
+                            : graded.is_correct
+                              ? 'success.main'
+                              : 'error.main'
+                        }
+                      >
+                        {answer ? `Bạn trả lời: ${answer}` : 'Đã bỏ qua'}
+                        {answer && graded.is_correct === null && ' (chưa chấm được)'}
+                      </Typography>
+                      {graded.is_correct !== true && (
+                        <Typography variant="body2" color="text.secondary">
+                          Đáp án đúng: {graded.correct_answer}
+                        </Typography>
                       )}
-                      <Box>
-                        <Typography fontWeight={700}>
-                          {index + 1}. {item.prompt}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color={
-                            !answer
-                              ? 'text.secondary'
-                              : correct
-                                ? 'success.main'
-                                : 'error.main'
-                          }
-                        >
-                          {answer ? `Bạn chọn: ${answer}` : 'Đã bỏ qua'}
-                        </Typography>
-                        {!correct && (
-                          <Typography variant="body2" color="text.secondary">
-                            Đáp án đúng: {item.correctAnswer}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Stack>
-                  </Paper>
-                )
-              })}
+                    </Box>
+                  </Stack>
+                </Paper>
+              ))}
             </Stack>
           </>
         ) : (
@@ -250,14 +273,16 @@ export function QuizPage() {
             sx={{ p: { xs: 1, sm: 0 }, bgcolor: 'transparent' }}
           >
             <Chip
-              label="Anh → Việt"
+              label={direction_label(direction)}
               size="small"
               color="primary"
               variant="outlined"
               sx={{ fontWeight: 700 }}
             />
             <Typography variant="h5" fontWeight={750} mt={2}>
-              Nghĩa tiếng Việt của từ này là gì?
+              {direction === 'en_vi'
+                ? 'Nghĩa tiếng Việt của từ này là gì?'
+                : 'Từ tiếng Anh của nghĩa này là gì?'}
             </Typography>
             <Stack direction="row" alignItems="center" spacing={1.5} mt={3} mb={4}>
               <Typography
@@ -265,23 +290,24 @@ export function QuizPage() {
                 fontWeight={750}
                 sx={{ fontSize: { xs: 36, sm: 48 } }}
               >
-                {question.prompt}
+                {prompt}
               </Typography>
-              <Typography color="text.secondary">
-                {question.pronunciation}
-              </Typography>
-              <IconButton
-                color="primary"
-                aria-label={`Phát âm ${question.prompt}`}
-                onClick={() => {
-                  window.speechSynthesis.cancel()
-                  window.speechSynthesis.speak(
-                    new SpeechSynthesisUtterance(question.prompt),
-                  )
-                }}
-              >
-                <VolumeUpRoundedIcon />
-              </IconButton>
+              {direction === 'en_vi' && (
+                <>
+                  {question.pronunciation && (
+                    <Typography color="text.secondary">
+                      {question.pronunciation}
+                    </Typography>
+                  )}
+                  <IconButton
+                    color="primary"
+                    aria-label={`Phát âm ${question.word}`}
+                    onClick={() => speak(question.word)}
+                  >
+                    <VolumeUpRoundedIcon />
+                  </IconButton>
+                </>
+              )}
             </Stack>
 
             <Typography
@@ -291,21 +317,23 @@ export function QuizPage() {
               color="text.secondary"
               fontWeight={700}
             >
-              Nghĩa tiếng Việt
+              {answer_label(direction)}
             </Typography>
             <TextField
               id="quiz-answer"
+              key={question.id}
               fullWidth
               autoFocus
-              value={answerInput}
-              disabled={checked}
+              value={answer_input}
+              disabled={grading || answered}
               placeholder="Gõ câu trả lời rồi nhấn Enter..."
-              onChange={(event) => setAnswerInput(event.target.value)}
+              onChange={(event) => set_answer_input(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter') handleCheckOrContinue()
+                if (event.nativeEvent.isComposing || event.keyCode === 229) return
+                if (event.key === 'Enter') handle_check_or_continue()
               }}
-              error={checked && !isCorrect}
-              color={checked && isCorrect ? 'success' : 'primary'}
+              error={result?.is_correct === false}
+              color={result?.is_correct === true ? 'success' : 'primary'}
               sx={{
                 mt: 1,
                 '& .MuiOutlinedInput-root': {
@@ -314,50 +342,44 @@ export function QuizPage() {
                 },
               }}
             />
-            <Typography variant="body2" color="text.secondary" mt={1}>
-              Gõ có dấu hoặc không dấu đều được.
-            </Typography>
 
-            {checked && (
-              <Typography
-                mt={2.5}
-                color={isCorrect ? 'success.main' : 'error.main'}
-                fontWeight={700}
-              >
-                {isCorrect
-                  ? 'Chính xác!'
-                  : `Chưa đúng. Đáp án là “${question.correctAnswer}”.`}
-              </Typography>
-            )}
+            <AnswerOutcome
+              grading={grading}
+              failed={failed}
+              result={result}
+              on_retry={() => void run(last_answer.current)}
+            />
 
             <Box sx={{ borderTop: 1, borderColor: 'divider', mt: 4, pt: 3 }}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              spacing={1.5}
-            >
-              <Button
-                variant="outlined"
-                disabled={checked}
-                onClick={() => saveAnswerAndContinue('')}
-                sx={{ px: { xs: 2, sm: 3 } }}
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                spacing={1.5}
               >
-                Không biết, bỏ qua
-              </Button>
-              <Button
-                variant="contained"
-                size="large"
-                disabled={!answerInput.trim()}
-                onClick={handleCheckOrContinue}
-                sx={{ px: { xs: 3, sm: 5 } }}
-              >
-                {checked
-                  ? questionIndex === questions.length - 1
-                    ? 'Xem kết quả'
-                    : 'Câu tiếp theo'
-                  : 'Kiểm tra'}
-              </Button>
-            </Stack>
+                <Button
+                  variant="outlined"
+                  disabled={grading || answered}
+                  onClick={() => void run('')}
+                  sx={{ px: { xs: 2, sm: 3 } }}
+                >
+                  Không biết, bỏ qua
+                </Button>
+                <Button
+                  variant="contained"
+                  size="large"
+                  key={answered ? 'next' : 'check'}
+                  autoFocus
+                  disabled={grading || (!answered && !answer_input.trim())}
+                  onClick={handle_check_or_continue}
+                  sx={{ px: { xs: 3, sm: 5 } }}
+                >
+                  {answered
+                    ? is_last
+                      ? 'Xem kết quả'
+                      : 'Câu tiếp theo'
+                    : 'Kiểm tra'}
+                </Button>
+              </Stack>
             </Box>
           </Paper>
         )}

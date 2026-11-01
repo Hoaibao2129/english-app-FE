@@ -14,32 +14,29 @@ import type { TopicStatus, VocabularyTopic } from '../types/vocabulary'
 
 interface TopicCardProps {
   topic: VocabularyTopic
-  onFlashcards: (topic: VocabularyTopic) => void
-  onQuiz: (topic: VocabularyTopic) => void
+  on_flashcards: (topic: VocabularyTopic) => void
+  on_quiz: (topic: VocabularyTopic) => void
 }
 
-const statusConfig: Record<
+const status_config: Record<
   TopicStatus,
   { label: string; color: 'default' | 'primary' | 'success' }
 > = {
-  'not-started': { label: 'Chưa học', color: 'default' },
-  'in-progress': { label: 'Đang học', color: 'primary' },
+  'not_started': { label: 'Chưa học', color: 'default' },
+  'in_progress': { label: 'Đang học', color: 'primary' },
   completed: { label: 'Hoàn thành', color: 'success' },
 }
 
 export function TopicCard({
   topic,
-  onFlashcards,
-  onQuiz,
+  on_flashcards,
+  on_quiz,
 }: TopicCardProps) {
-  const status: TopicStatus =
-    topic.learnedWords === 0
-      ? 'not-started'
-      : topic.learnedWords >= topic.totalWords
-        ? 'completed'
-        : 'in-progress'
-  const statusInfo = statusConfig[status]
-  const progress = (topic.learnedWords / topic.totalWords) * 100
+  const { status } = topic
+  const status_info = status_config[status]
+  const progress = topic.total_words
+    ? (topic.correct / topic.total_words) * 100
+    : 0
 
   return (
     <Paper
@@ -58,16 +55,16 @@ export function TopicCard({
     >
       <Stack direction="row" justifyContent="space-between" mb={1.4}>
         <Typography variant="body2" color="text.secondary" fontWeight={650}>
-          Chủ đề {topic.id}
+          Chủ đề {topic.order}
         </Typography>
         <Chip
           size="small"
-          color={statusInfo.color}
-          label={statusInfo.label}
+          color={status_info.color}
+          label={status_info.label}
           icon={
             status === 'completed' ? (
               <CheckCircleRoundedIcon />
-            ) : status === 'in-progress' ? (
+            ) : status === 'in_progress' ? (
               <PlayArrowRoundedIcon />
             ) : undefined
           }
@@ -79,10 +76,10 @@ export function TopicCard({
         {topic.title}
       </Typography>
       <Typography color="text.secondary" mb={2.25}>
-        {topic.titleVi}
+        {topic.title_vi}
       </Typography>
 
-      <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+      <Stack direction="row" alignItems="center" spacing={1} mb={0.75}>
         <LinearProgress
           variant="determinate"
           value={progress}
@@ -90,9 +87,12 @@ export function TopicCard({
           sx={{ flex: 1, height: 6, borderRadius: 10 }}
         />
         <Typography variant="body2" color="text.secondary" fontWeight={700}>
-          {topic.learnedWords}/{topic.totalWords}
+          {topic.correct}/{topic.total_words}
         </Typography>
       </Stack>
+      <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+        {topic.correct} đúng · {topic.wrong} sai · {topic.not_started} chưa học
+      </Typography>
 
       <Stack direction="row" spacing={1}>
         <Button
@@ -100,7 +100,7 @@ export function TopicCard({
           size="small"
           variant="contained"
           startIcon={<StyleRoundedIcon />}
-          onClick={() => onFlashcards(topic)}
+          onClick={() => on_flashcards(topic)}
         >
           Học thẻ
         </Button>
@@ -109,7 +109,7 @@ export function TopicCard({
           size="small"
           variant="outlined"
           startIcon={<QuizOutlinedIcon />}
-          onClick={() => onQuiz(topic)}
+          onClick={() => on_quiz(topic)}
         >
           Quiz
         </Button>

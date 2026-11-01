@@ -1,114 +1,75 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { vocabularyService } from '../services/vocabularyService'
+import { vocabulary_service } from '../services/vocabularyService'
 import type {
+  Summary,
   TopicFilter,
   VocabularyTopic,
 } from '../types/vocabulary'
 
-const STORAGE_KEY = 'study-english:progress'
-
-function getStoredProgress(): Record<number, number> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
-}
-
 export function useVocabulary() {
-  const [topics, setTopics] = useState<VocabularyTopic[]>([])
-  const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<TopicFilter>('all')
+  const [topics, set_topics] = useState<VocabularyTopic[]>([])
+  const [summary, set_summary] = useState<Summary | null>(null)
+  const [loading, set_loading] = useState(true)
+  const [error, set_error] = useState<Error | null>(null)
+  const [query, set_query] = useState('')
+  const [filter, set_filter] = useState<TopicFilter>('all')
+  const [reload_key, set_reload_key] = useState(0)
 
   useEffect(() => {
     let active = true
 
-    vocabularyService.getTopics().then((data) => {
-      if (!active) return
-
-      const progress = getStoredProgress()
-      setTopics(
-        data.map((topic) => ({
-          ...topic,
-          learnedWords: Math.min(
-            progress[topic.id] ?? topic.learnedWords,
-            topic.totalWords,
-          ),
-        })),
-      )
-      setLoading(false)
-    })
+    set_loading(true)
+    set_error(null)
+    Promise.all([vocabulary_service.get_topics(), vocabulary_service.get_summary()])
+      .then(([topic_data, summary_data]) => {
+        if (!active) return
+        set_topics(topic_data)
+        set_summary(summary_data)
+      })
+      .catch((reason: unknown) => {
+        if (!active) return
+        set_error(reason instanceof Error ? reason : new Error(String(reason)))
+      })
+      .finally(() => {
+        if (active) set_loading(false)
+      })
 
     return () => {
       active = false
     }
-  }, [])
+  }, [reload_key])
 
-  const updateProgress = useCallback((topicId: number, learnedWords: number) => {
-    setTopics((current) => {
-      const next = current.map((topic) =>
-        topic.id === topicId
-          ? {
-              ...topic,
-              learnedWords: Math.min(learnedWords, topic.totalWords),
-            }
-          : topic,
-      )
-      const progress = Object.fromEntries(
-        next.map((topic) => [topic.id, topic.learnedWords]),
-      )
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
-      return next
-    })
-  }, [])
+  const reload = useCallback(() => set_reload_key((key) => key + 1), [])
 
-  const resetProgress = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
-    setTopics((current) =>
-      current.map((topic) => ({ ...topic, learnedWords: 0 })),
-    )
-  }, [])
+  const reset_progress = useCallback(async () => {
+    await vocabulary_service.reset_progress()
+    reload()
+  }, [reload])
 
-  const filteredTopics = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase()
+  const filtered_topics = useMemo(() => {
+    const normalized_query = query.trim().toLocaleLowerCase()
 
     return topics.filter((topic) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        topic.title.toLocaleLowerCase().includes(normalizedQuery) ||
-        topic.titleVi.toLocaleLowerCase().includes(normalizedQuery)
+      const matches_query =
+        !normalized_query ||
+        topic.title.toLocaleLowerCase().includes(normalized_query) ||
+        topic.title_vi.toLocaleLowerCase().includes(normalized_query)
 
-      const status =
-        topic.learnedWords === 0
-          ? 'not-started'
-          : topic.learnedWords >= topic.totalWords
-            ? 'completed'
-            : 'in-progress'
-
-      return matchesQuery && (filter === 'all' || filter === status)
+      return matches_query && (filter === 'all' || filter === topic.status)
     })
   }, [filter, query, topics])
 
-  const learnedWords = topics.reduce(
-    (total, topic) => total + topic.learnedWords,
-    0,
-  )
-  const totalWords = topics.reduce(
-    (total, topic) => total + topic.totalWords,
-    0,
-  )
-
   return {
-    topics: filteredTopics,
+    topics: filtered_topics,
     loading,
+    error,
     query,
-    setQuery,
+    set_query,
     filter,
-    setFilter,
-    learnedWords,
-    totalWords,
-    updateProgress,
-    resetProgress,
+    set_filter,
+    learned_words: summary?.learned_words ?? 0,
+    total_words: summary?.total_words ?? 0,
+    reset_progress,
+    reload,
   }
 }

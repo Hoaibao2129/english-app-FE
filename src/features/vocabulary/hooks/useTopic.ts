@@ -1,62 +1,38 @@
-import { useEffect, useState } from 'react'
-import { vocabularyService } from '../services/vocabularyService'
-import type { VocabularyTopic } from '../types/vocabulary'
+import { useCallback, useEffect, useState } from 'react'
+import { vocabulary_service } from '../services/vocabularyService'
+import type { VocabularyTopicDetail } from '../types/vocabulary'
 
-const STORAGE_KEY = 'study-english:progress'
-
-export function useTopic(topicId: number) {
-  const [topic, setTopic] = useState<VocabularyTopic | null>(null)
-  const [loading, setLoading] = useState(true)
+export function useTopic(topic_id: string) {
+  const [topic, set_topic] = useState<VocabularyTopicDetail | null>(null)
+  const [loading, set_loading] = useState(true)
+  const [error, set_error] = useState<Error | null>(null)
+  const [reload_key, set_reload_key] = useState(0)
 
   useEffect(() => {
     let active = true
 
-    vocabularyService.getTopics().then((topics) => {
-      if (!active) return
-
-      const selectedTopic = topics.find((item) => item.id === topicId) ?? null
-      let progress: Record<number, number> = {}
-
-      try {
-        progress = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-      } catch {
-        progress = {}
-      }
-
-      setTopic(
-        selectedTopic
-          ? {
-              ...selectedTopic,
-              learnedWords: progress[topicId] ?? selectedTopic.learnedWords,
-            }
-          : null,
-      )
-      setLoading(false)
-    })
+    set_loading(true)
+    set_error(null)
+    vocabulary_service
+      .get_topic(topic_id)
+      .then((data) => {
+        if (active) set_topic(data)
+      })
+      .catch((reason: unknown) => {
+        if (!active) return
+        set_topic(null)
+        set_error(reason instanceof Error ? reason : new Error(String(reason)))
+      })
+      .finally(() => {
+        if (active) set_loading(false)
+      })
 
     return () => {
       active = false
     }
-  }, [topicId])
+  }, [topic_id, reload_key])
 
-  const updateProgress = (learnedWords: number) => {
-    if (!topic) return
+  const reload = useCallback(() => set_reload_key((key) => key + 1), [])
 
-    const nextValue = Math.min(learnedWords, topic.totalWords)
-    let progress: Record<number, number> = {}
-
-    try {
-      progress = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-    } catch {
-      progress = {}
-    }
-
-    progress[topic.id] = nextValue
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
-    setTopic((current) =>
-      current ? { ...current, learnedWords: nextValue } : current,
-    )
-  }
-
-  return { topic, loading, updateProgress }
+  return { topic, loading, error, reload }
 }

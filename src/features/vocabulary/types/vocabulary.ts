@@ -1,30 +1,55 @@
-export type TopicStatus = 'not-started' | 'in-progress' | 'completed'
+export type Direction = 'en_vi' | 'vi_en'
+export type StudyMode = 'flashcard' | 'quiz'
+export type GradedBy = 'exact' | 'cache' | 'ai' | 'skipped' | 'ungraded'
+
+export type TopicStatus = 'not_started' | 'in_progress' | 'completed'
+export type WordStatus = 'correct' | 'wrong' | 'new'
 
 export interface VocabularyWord {
-  id: number
+  id: string
   word: string
-  pronunciation: string
-  partOfSpeech?: string
+  pronunciation: string | null
+  part_of_speech: string | null
   meaning: string
-  example: string
-  exampleMeaning: string
+  example: string | null
+  example_meaning: string | null
+  status: WordStatus
 }
 
 export interface VocabularyTopic {
-  id: number
+  id: string
+  order: number
   title: string
-  titleVi: string
-  totalWords: number
-  learnedWords: number
+  title_vi: string
+  total_words: number
+  correct: number
+  wrong: number
+  not_started: number
+  status: TopicStatus
+}
+
+export interface VocabularyTopicDetail extends VocabularyTopic {
   words: VocabularyWord[]
 }
 
 export type TopicFilter = 'all' | TopicStatus
 
-export interface QuizQuestion {
-  wordId: number
-  prompt: string
-  pronunciation: string
-  correctAnswer: string
-  options: string[]
+export interface SubmitAnswerInput {
+  word_id: string
+  direction: Direction
+  mode: StudyMode
+  answer: string
+}
+
+export interface SubmitAnswerResult {
+  is_correct: boolean | null
+  correct_answer: string
+  graded_by: GradedBy
+}
+
+export interface Summary {
+  total_words: number
+  learned_words: number
+  wrong_words: number
+  not_started: number
 }

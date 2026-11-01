@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Box, CircularProgress } from '@mui/material'
+import { RequireAuth } from './features/auth/components/RequireAuth'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 const VocabularyPage = lazy(() =>
@@ -18,6 +19,17 @@ const QuizPage = lazy(() =>
   })),
 )
 
+const LoginPage = lazy(() =>
+  import('./features/auth/pages/LoginPage').then((module) => ({
+    default: module.LoginPage,
+  })),
+)
+const RegisterPage = lazy(() =>
+  import('./features/auth/pages/RegisterPage').then((module) => ({
+    default: module.RegisterPage,
+  })),
+)
+
 function App() {
   return (
     <Suspense
@@ -28,12 +40,32 @@ function App() {
       }
     >
       <Routes>
-        <Route path="/" element={<VocabularyPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
-          path="/topics/:topicId/flashcards"
-          element={<FlashcardPage />}
+          path="/"
+          element={
+            <RequireAuth>
+              <VocabularyPage />
+            </RequireAuth>
+          }
         />
-        <Route path="/topics/:topicId/quiz" element={<QuizPage />} />
+        <Route
+          path="/topics/:topic_id/flashcards"
+          element={
+            <RequireAuth>
+              <FlashcardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/topics/:topic_id/quiz"
+          element={
+            <RequireAuth>
+              <QuizPage />
+            </RequireAuth>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

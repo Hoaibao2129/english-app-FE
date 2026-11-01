@@ -17,7 +17,7 @@ interface LearningHeaderProps {
   title: string
   current: number
   total: number
-  counterLabel?: string
+  counter_label?: string
   stats?: ReactNode
   action?: ReactNode
 }
@@ -26,7 +26,7 @@ export function LearningHeader({
   title,
   current,
   total,
-  counterLabel,
+  counter_label,
   stats,
   action,
 }: LearningHeaderProps) {
@@ -84,7 +84,7 @@ export function LearningHeader({
               fontWeight={700}
               whiteSpace="nowrap"
             >
-              {counterLabel ?? `${current}/${total}`}
+              {counter_label ?? `${current}/${total}`}
             </Typography>
           </Stack>
           {stats && (
