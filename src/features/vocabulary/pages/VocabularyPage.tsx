@@ -7,6 +7,11 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   InputAdornment,
   Stack,
   TextField,
@@ -18,7 +23,7 @@ import { TopicCard } from '../components/TopicCard'
 import { VocabularyHeader } from '../components/VocabularyHeader'
 import { useStudyDirection } from '../hooks/useStudyDirection'
 import { useVocabulary } from '../hooks/useVocabulary'
-import type { TopicFilter } from '../types/vocabulary'
+import type { TopicFilter, VocabularyTopic } from '../types/vocabulary'
 
 const filters: { value: TopicFilter; label: string }[] = [
   { value: 'all', label: 'Tất cả' },
@@ -41,14 +46,30 @@ export function VocabularyPage() {
     learned_words,
     total_words,
     reset_progress,
+    reset_topic,
     reload,
   } = useVocabulary()
   const [direction, set_direction] = useStudyDirection()
   const [reset_error, set_reset_error] = useState(false)
 
+  const [topic_to_reset, set_topic_to_reset] = useState<VocabularyTopic | null>(null)
+  const [resetting_topic, set_resetting_topic] = useState(false)
+
   const handle_reset = () => {
     set_reset_error(false)
     reset_progress().catch(() => set_reset_error(true))
+  }
+
+  const confirm_reset_topic = () => {
+    if (!topic_to_reset) return
+    set_reset_error(false)
+    set_resetting_topic(true)
+    reset_topic(topic_to_reset.id)
+      .catch(() => set_reset_error(true))
+      .finally(() => {
+        set_resetting_topic(false)
+        set_topic_to_reset(null)
+      })
   }
 
   return (
@@ -172,6 +193,8 @@ export function VocabularyPage() {
                   navigate(`/topics/${item.id}/flashcards`)
                 }
                 on_quiz={(item) => navigate(`/topics/${item.id}/quiz`)}
+                on_review={(item) => navigate(`/topics/${item.id}/review`)}
+                on_reset={set_topic_to_reset}
               />
             ))}
           </Box>
@@ -187,6 +210,35 @@ export function VocabularyPage() {
         )}
         </Container>
       </Box>
+
+      <Dialog
+        open={topic_to_reset !== null}
+        onClose={() => !resetting_topic && set_topic_to_reset(null)}
+      >
+        <DialogTitle>Reset chủ đề này?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Toàn bộ tiến độ của chủ đề <b>{topic_to_reset?.title}</b> sẽ bị xoá
+            để bạn học lại từ đầu. Các chủ đề khác không bị ảnh hưởng.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            disabled={resetting_topic}
+            onClick={() => set_topic_to_reset(null)}
+          >
+            Huỷ
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={resetting_topic}
+            onClick={confirm_reset_topic}
+          >
+            Reset
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

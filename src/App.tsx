@@ -59,6 +59,14 @@ function App() {
           }
         />
         <Route
+          path="/topics/:topic_id/review"
+          element={
+            <RequireAuth>
+              <FlashcardPage review />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/topics/:topic_id/quiz"
           element={
             <RequireAuth>

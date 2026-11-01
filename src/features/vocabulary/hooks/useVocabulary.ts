@@ -46,6 +46,14 @@ export function useVocabulary() {
     reload()
   }, [reload])
 
+  const reset_topic = useCallback(
+    async (topic_id: string) => {
+      await vocabulary_service.reset_topic(topic_id)
+      reload()
+    },
+    [reload],
+  )
+
   const filtered_topics = useMemo(() => {
     const normalized_query = query.trim().toLocaleLowerCase()
 
@@ -70,6 +78,7 @@ export function useVocabulary() {
     learned_words: summary?.learned_words ?? 0,
     total_words: summary?.total_words ?? 0,
     reset_progress,
+    reset_topic,
     reload,
   }
 }
