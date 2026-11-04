@@ -10,7 +10,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "rules:gen": "node scripts/generate-ai-rules.mjs",
+    "rules:check": "node scripts/generate-ai-rules.mjs --check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -30,6 +34,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "prettier": "^3.9.10",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.42.0",
     "vite": "^7.1.5",

@@ -33,8 +33,8 @@ const status_config: Record<
   TopicStatus,
   { label: string; color: 'default' | 'primary' | 'success' }
 > = {
-  'not_started': { label: 'Chưa học', color: 'default' },
-  'in_progress': { label: 'Đang học', color: 'primary' },
+  not_started: { label: 'Chưa học', color: 'default' },
+  in_progress: { label: 'Đang học', color: 'primary' },
   completed: { label: 'Hoàn thành', color: 'success' },
 }
 
@@ -144,7 +144,12 @@ export function TopicCard({
           {topic.correct}/{topic.total_words}
         </Typography>
       </Stack>
-      <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        display="block"
+        mb={2}
+      >
         {topic.correct} đúng · {topic.wrong} sai · {topic.not_started} chưa học
       </Typography>
 

@@ -52,7 +52,9 @@ export function VocabularyPage() {
   const [direction, set_direction] = useStudyDirection()
   const [reset_error, set_reset_error] = useState(false)
 
-  const [topic_to_reset, set_topic_to_reset] = useState<VocabularyTopic | null>(null)
+  const [topic_to_reset, set_topic_to_reset] = useState<VocabularyTopic | null>(
+    null,
+  )
   const [resetting_topic, set_resetting_topic] = useState(false)
 
   const handle_reset = () => {
@@ -96,118 +98,118 @@ export function VocabularyPage() {
         />
 
         <Container maxWidth="lg" component="main" sx={{ py: { xs: 4, md: 6 } }}>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          justifyContent="space-between"
-          alignItems={{ xs: 'stretch', md: 'flex-end' }}
-          spacing={3}
-          mb={4}
-        >
-          <Box>
-            <Typography
-              variant="h4"
-              component="h2"
-              fontWeight={750}
-              gutterBottom
-            >
-              Chủ đề & tiến độ
-            </Typography>
-            <Typography color="text.secondary">
-              Chọn một chủ đề và bắt đầu học theo tốc độ của bạn.
-            </Typography>
-          </Box>
-
-          <TextField
-            value={query}
-            onChange={(event) => set_query(event.target.value)}
-            placeholder="Tìm kiếm chủ đề..."
-            size="small"
-            sx={{ width: { xs: '100%', md: 300 } }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchRoundedIcon color="action" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        </Stack>
-
-        <Stack
-          direction="row"
-          spacing={1}
-          mb={3}
-          sx={{ overflowX: 'auto', pb: 0.5 }}
-        >
-          {filters.map((item) => (
-            <Chip
-              key={item.value}
-              label={item.label}
-              clickable
-              color={filter === item.value ? 'primary' : 'default'}
-              variant={filter === item.value ? 'filled' : 'outlined'}
-              onClick={() => set_filter(item.value)}
-              sx={{ flexShrink: 0, fontWeight: 650 }}
-            />
-          ))}
-        </Stack>
-
-        {reset_error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            Không đặt lại được tiến độ. Vui lòng thử lại.
-          </Alert>
-        )}
-
-        {loading ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', py: 14 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Box sx={{ textAlign: 'center', py: 12 }}>
-            <Typography variant="h6" fontWeight={700}>
-              Không kết nối được máy chủ
-            </Typography>
-            <Button variant="outlined" onClick={reload} sx={{ mt: 2 }}>
-              Thử lại
-            </Button>
-          </Box>
-        ) : topics.length ? (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                lg: 'repeat(3, minmax(0, 1fr))',
-              },
-              gap: 3,
-            }}
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'stretch', md: 'flex-end' }}
+            spacing={3}
+            mb={4}
           >
-            {topics.map((topic) => (
-              <TopicCard
-                key={topic.id}
-                topic={topic}
-                on_flashcards={(item) =>
-                  navigate(`/topics/${item.id}/flashcards`)
-                }
-                on_quiz={(item) => navigate(`/topics/${item.id}/quiz`)}
-                on_review={(item) => navigate(`/topics/${item.id}/review`)}
-                on_reset={set_topic_to_reset}
+            <Box>
+              <Typography
+                variant="h4"
+                component="h2"
+                fontWeight={750}
+                gutterBottom
+              >
+                Chủ đề & tiến độ
+              </Typography>
+              <Typography color="text.secondary">
+                Chọn một chủ đề và bắt đầu học theo tốc độ của bạn.
+              </Typography>
+            </Box>
+
+            <TextField
+              value={query}
+              onChange={(event) => set_query(event.target.value)}
+              placeholder="Tìm kiếm chủ đề..."
+              size="small"
+              sx={{ width: { xs: '100%', md: 300 } }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Stack>
+
+          <Stack
+            direction="row"
+            spacing={1}
+            mb={3}
+            sx={{ overflowX: 'auto', pb: 0.5 }}
+          >
+            {filters.map((item) => (
+              <Chip
+                key={item.value}
+                label={item.label}
+                clickable
+                color={filter === item.value ? 'primary' : 'default'}
+                variant={filter === item.value ? 'filled' : 'outlined'}
+                onClick={() => set_filter(item.value)}
+                sx={{ flexShrink: 0, fontWeight: 650 }}
               />
             ))}
-          </Box>
-        ) : (
-          <Box sx={{ textAlign: 'center', py: 12 }}>
-            <Typography variant="h6" fontWeight={700}>
-              Không tìm thấy chủ đề
-            </Typography>
-            <Typography color="text.secondary" mt={1}>
-              Hãy thử từ khóa hoặc bộ lọc khác.
-            </Typography>
-          </Box>
-        )}
+          </Stack>
+
+          {reset_error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              Không đặt lại được tiến độ. Vui lòng thử lại.
+            </Alert>
+          )}
+
+          {loading ? (
+            <Box sx={{ display: 'grid', placeItems: 'center', py: 14 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Box sx={{ textAlign: 'center', py: 12 }}>
+              <Typography variant="h6" fontWeight={700}>
+                Không kết nối được máy chủ
+              </Typography>
+              <Button variant="outlined" onClick={reload} sx={{ mt: 2 }}>
+                Thử lại
+              </Button>
+            </Box>
+          ) : topics.length ? (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                  lg: 'repeat(3, minmax(0, 1fr))',
+                },
+                gap: 3,
+              }}
+            >
+              {topics.map((topic) => (
+                <TopicCard
+                  key={topic.id}
+                  topic={topic}
+                  on_flashcards={(item) =>
+                    navigate(`/topics/${item.id}/flashcards`)
+                  }
+                  on_quiz={(item) => navigate(`/topics/${item.id}/quiz`)}
+                  on_review={(item) => navigate(`/topics/${item.id}/review`)}
+                  on_reset={set_topic_to_reset}
+                />
+              ))}
+            </Box>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 12 }}>
+              <Typography variant="h6" fontWeight={700}>
+                Không tìm thấy chủ đề
+              </Typography>
+              <Typography color="text.secondary" mt={1}>
+                Hãy thử từ khóa hoặc bộ lọc khác.
+              </Typography>
+            </Box>
+          )}
         </Container>
       </Box>
 

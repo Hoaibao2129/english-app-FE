@@ -76,13 +76,27 @@ const face_sx = (theme: Theme, outcome: Outcome | null, compact: boolean) => ({
 const escape_regex = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-function HighlightedExample({ example, word }: { example: string; word: string }) {
+function HighlightedExample({
+  example,
+  word,
+}: {
+  example: string
+  word: string
+}) {
   const parts = example.split(new RegExp(`(${escape_regex(word)})`, 'gi'))
   return (
     <>
       {parts.map((part, index) =>
         part.toLowerCase() === word.toLowerCase() ? (
-          <Box component="mark" key={index} sx={{ bgcolor: 'transparent', color: 'primary.main', fontWeight: 700 }}>
+          <Box
+            component="mark"
+            key={index}
+            sx={{
+              bgcolor: 'transparent',
+              color: 'primary.main',
+              fontWeight: 700,
+            }}
+          >
             {part}
           </Box>
         ) : (
@@ -127,7 +141,11 @@ function CardBack({ word }: { word: VocabularyWord }) {
             </Typography>
           )}
           {word.part_of_speech && (
-            <Chip size="small" label={word.part_of_speech} sx={{ fontWeight: 650 }} />
+            <Chip
+              size="small"
+              label={word.part_of_speech}
+              sx={{ fontWeight: 650 }}
+            />
           )}
         </Stack>
       </Box>
@@ -196,7 +214,9 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
   )
   const keyboard_open = useKeyboardOpen()
   // Touch devices: don't pop the keyboard over a card the learner hasn't read yet.
-  const is_touch = useMediaQuery('(hover: none) and (pointer: coarse)', { noSsr: true })
+  const is_touch = useMediaQuery('(hover: none) and (pointer: coarse)', {
+    noSsr: true,
+  })
 
   // iOS scrolls the page to keep the input above the keyboard, pushing the card
   // under the sticky header. Once the card has compacted, bring it back into view.
@@ -206,7 +226,11 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
       window.scrollTo({ top: 0 })
       const input = input_ref.current
       const viewport = window.visualViewport
-      if (input && viewport && input.getBoundingClientRect().bottom > viewport.height) {
+      if (
+        input &&
+        viewport &&
+        input.getBoundingClientRect().bottom > viewport.height
+      ) {
         input.scrollIntoView({ block: 'end' })
       }
     })
@@ -276,7 +300,9 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
     return (
       <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
         <Typography variant="h5" fontWeight={750}>
-          {error ? 'Không kết nối được máy chủ' : 'Chưa có dữ liệu cho chủ đề này'}
+          {error
+            ? 'Không kết nối được máy chủ'
+            : 'Chưa có dữ liệu cho chủ đề này'}
         </Typography>
         <Stack direction="row" justifyContent="center" spacing={1.5} mt={3}>
           {error && (
@@ -496,7 +522,8 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                     sx={{
                       display: 'grid',
                       transformStyle: 'preserve-3d',
-                      transition: 'transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1)',
+                      transition:
+                        'transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1)',
                       transform: answered ? 'rotateY(180deg)' : 'none',
                       ...reduced_motion,
                     }}
@@ -561,12 +588,15 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                 key={word.id}
                 inputRef={input_ref}
                 placeholder={`${answer_label(direction)}…`}
-                slotProps={{ htmlInput: { 'aria-label': answer_label(direction) } }}
+                slotProps={{
+                  htmlInput: { 'aria-label': answer_label(direction) },
+                }}
                 value={answer_input}
                 disabled={grading || answered}
                 onChange={(event) => set_answer_input(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.nativeEvent.isComposing || event.keyCode === 229) return
+                  if (event.nativeEvent.isComposing || event.keyCode === 229)
+                    return
                   if (event.key === 'Enter') handle_check()
                   if (event.key === 'Escape') handle_skip()
                 }}
@@ -590,7 +620,8 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                 >
                   {answered ? (
                     <>
-                      Nhấn <b>Enter</b> để {is_last ? 'xem kết quả' : 'tiếp tục'}
+                      Nhấn <b>Enter</b> để{' '}
+                      {is_last ? 'xem kết quả' : 'tiếp tục'}
                     </>
                   ) : (
                     <>
