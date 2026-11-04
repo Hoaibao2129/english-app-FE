@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import {
   Alert,
@@ -6,7 +7,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
 import { AppNavigation } from '../components/AppNavigation'
 import { TopicCard } from '../components/TopicCard'
@@ -97,39 +98,58 @@ export function VocabularyPage() {
           on_menu_click={() => set_mobile_navigation_open(true)}
         />
 
-        <Container maxWidth="lg" component="main" sx={{ py: { xs: 4, md: 6 } }}>
+        <Box
+          component="main"
+          sx={{ px: { xs: 2, sm: 3, lg: 3.5 }, py: { xs: 3.5, lg: 4 } }}
+        >
           <Stack
-            direction={{ xs: 'column', md: 'row' }}
+            direction={{ xs: 'column', lg: 'row' }}
             justifyContent="space-between"
-            alignItems={{ xs: 'stretch', md: 'flex-end' }}
-            spacing={3}
-            mb={4}
+            alignItems={{ xs: 'stretch', lg: 'flex-end' }}
+            spacing={2.5}
           >
-            <Box>
+            <Box sx={{ maxWidth: 672 }}>
               <Typography
-                variant="h4"
-                component="h2"
-                fontWeight={750}
-                gutterBottom
+                variant="overline"
+                component="p"
+                color="primary"
+                sx={{ mb: 1 }}
               >
-                Chủ đề & tiến độ
+                1000 TỪ VỰNG CƠ BẢN
               </Typography>
-              <Typography color="text.secondary">
-                Chọn một chủ đề và bắt đầu học theo tốc độ của bạn.
+              <Typography
+                component="h2"
+                sx={{
+                  fontSize: { xs: '1.875rem', sm: '2.5rem' },
+                  lineHeight: 1.2,
+                  fontWeight: 600,
+                  letterSpacing: '-0.05em',
+                }}
+              >
+                Danh mục chủ đề
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1.25 }}>
+                Bắt đầu bài học mới hoặc tiếp tục lộ trình hiện tại của bạn.
               </Typography>
             </Box>
 
             <TextField
+              type="search"
               value={query}
               onChange={(event) => set_query(event.target.value)}
               placeholder="Tìm kiếm chủ đề..."
-              size="small"
-              sx={{ width: { xs: '100%', md: 300 } }}
+              sx={{
+                width: { xs: '100%', lg: 360 },
+                '& .MuiOutlinedInput-root': { height: 48, fontSize: 14 },
+              }}
               slotProps={{
+                htmlInput: { 'aria-label': 'Tìm kiếm chủ đề' },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchRoundedIcon color="action" />
+                      <SearchRoundedIcon
+                        sx={{ fontSize: 18, color: 'text.secondary' }}
+                      />
                     </InputAdornment>
                   ),
                 },
@@ -138,26 +158,58 @@ export function VocabularyPage() {
           </Stack>
 
           <Stack
-            direction="row"
-            spacing={1}
-            mb={3}
-            sx={{ overflowX: 'auto', pb: 0.5 }}
+            direction={{ xs: 'column', sm: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', sm: 'center' }}
+            spacing={2}
+            sx={{ mt: 3.5, mb: 2.5 }}
           >
-            {filters.map((item) => (
-              <Chip
-                key={item.value}
-                label={item.label}
-                clickable
-                color={filter === item.value ? 'primary' : 'default'}
-                variant={filter === item.value ? 'filled' : 'outlined'}
-                onClick={() => set_filter(item.value)}
-                sx={{ flexShrink: 0, fontWeight: 650 }}
-              />
-            ))}
+            <Stack
+              role="group"
+              aria-label="Lọc chủ đề"
+              direction="row"
+              flexWrap="wrap"
+              useFlexGap
+              spacing={1}
+            >
+              {filters.map((item) => {
+                const selected = filter === item.value
+                return (
+                  <Chip
+                    key={item.value}
+                    label={item.label}
+                    clickable
+                    aria-pressed={selected}
+                    color={selected ? 'primary' : 'default'}
+                    variant={selected ? 'filled' : 'outlined'}
+                    onClick={() => set_filter(item.value)}
+                    sx={{
+                      height: 36,
+                      px: 0.75,
+                      fontSize: 14,
+                      bgcolor: selected ? undefined : 'background.paper',
+                      borderColor: 'divider',
+                    }}
+                  />
+                )
+              })}
+            </Stack>
+            {!loading && !error && (
+              <Typography variant="body2" color="text.secondary">
+                Hiển thị{' '}
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 600, color: 'text.primary' }}
+                >
+                  {topics.length}
+                </Box>{' '}
+                chủ đề
+              </Typography>
+            )}
           </Stack>
 
           {reset_error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 2.5 }}>
               Không đặt lại được tiến độ. Vui lòng thử lại.
             </Alert>
           )}
@@ -167,14 +219,16 @@ export function VocabularyPage() {
               <CircularProgress />
             </Box>
           ) : error ? (
-            <Box sx={{ textAlign: 'center', py: 12 }}>
-              <Typography variant="h6" fontWeight={700}>
-                Không kết nối được máy chủ
-              </Typography>
-              <Button variant="outlined" onClick={reload} sx={{ mt: 2 }}>
-                Thử lại
-              </Button>
-            </Box>
+            <Alert
+              severity="error"
+              action={
+                <Button color="inherit" size="small" onClick={reload}>
+                  Thử lại
+                </Button>
+              }
+            >
+              Không kết nối được máy chủ
+            </Alert>
           ) : topics.length ? (
             <Box
               sx={{
@@ -182,9 +236,9 @@ export function VocabularyPage() {
                 gridTemplateColumns: {
                   xs: '1fr',
                   sm: 'repeat(2, minmax(0, 1fr))',
-                  lg: 'repeat(3, minmax(0, 1fr))',
+                  xl: 'repeat(3, minmax(0, 1fr))',
                 },
-                gap: 3,
+                gap: 2,
               }}
             >
               {topics.map((topic) => (
@@ -201,16 +255,51 @@ export function VocabularyPage() {
               ))}
             </Box>
           ) : (
-            <Box sx={{ textAlign: 'center', py: 12 }}>
-              <Typography variant="h6" fontWeight={700}>
-                Không tìm thấy chủ đề
+            <Stack
+              alignItems="center"
+              justifyContent="center"
+              sx={(theme) => ({
+                minHeight: 260,
+                px: 3,
+                py: 5,
+                textAlign: 'center',
+                borderRadius: '16px',
+                border: `1px dashed ${theme.palette.divider}`,
+                bgcolor: alpha(theme.palette.background.paper, 0.7),
+              })}
+            >
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '16px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  bgcolor: 'secondary.main',
+                  color: 'primary.main',
+                }}
+              >
+                <SearchRoundedIcon sx={{ fontSize: 20 }} />
+              </Box>
+              <Typography fontWeight={600} mt={2}>
+                Chưa tìm thấy chủ đề phù hợp
               </Typography>
-              <Typography color="text.secondary" mt={1}>
-                Hãy thử từ khóa hoặc bộ lọc khác.
+              <Typography variant="body2" color="text.secondary" mt={0.75}>
+                Thử đổi từ khóa hoặc chọn một bộ lọc khác nhé.
               </Typography>
-            </Box>
+              <Button
+                size="small"
+                onClick={() => {
+                  set_query('')
+                  set_filter('all')
+                }}
+                sx={{ mt: 1.5 }}
+              >
+                Đặt lại bộ lọc
+              </Button>
+            </Stack>
           )}
-        </Container>
+        </Box>
       </Box>
 
       <Dialog
@@ -224,8 +313,9 @@ export function VocabularyPage() {
             để bạn học lại từ đầu. Các chủ đề khác không bị ảnh hưởng.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button
+            variant="outlined"
             disabled={resetting_topic}
             onClick={() => set_topic_to_reset(null)}
           >
@@ -235,9 +325,10 @@ export function VocabularyPage() {
             color="error"
             variant="contained"
             disabled={resetting_topic}
+            startIcon={<RestartAltRoundedIcon />}
             onClick={confirm_reset_topic}
           >
-            Reset
+            Reset chủ đề
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded'
-import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined'
+import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
 import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded'
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -13,7 +13,6 @@ import {
   Container,
   Divider,
   IconButton,
-  Paper,
   Stack,
   TextField,
   Typography,
@@ -21,7 +20,9 @@ import {
 } from '@mui/material'
 import { alpha, type Theme } from '@mui/material/styles'
 import { useNavigate, useParams } from 'react-router-dom'
+import { AccentChip } from '../components/AccentChip'
 import { AnswerOutcome } from '../components/AnswerOutcome'
+import { CompletionCard } from '../components/CompletionCard'
 import { LearningHeader } from '../components/LearningHeader'
 import { useKeyboardOpen } from '../hooks/useKeyboardOpen'
 import { useStudyDirection } from '../hooks/useStudyDirection'
@@ -29,7 +30,12 @@ import { useSubmitAnswer } from '../hooks/useSubmitAnswer'
 import { useTopic } from '../hooks/useTopic'
 import type { SubmitAnswerResult, VocabularyWord } from '../types/vocabulary'
 import { shuffle } from '../utils/createQuiz'
-import { answer_label, prompt_of, speak } from '../utils/direction'
+import {
+  answer_label,
+  direction_label,
+  prompt_of,
+  speak,
+} from '../utils/direction'
 import { pop, reduced_motion, shake, slide_in } from '../utils/motion'
 
 type Outcome = 'correct' | 'wrong' | 'ungraded'
@@ -60,9 +66,9 @@ const face_sx = (theme: Theme, outcome: Outcome | null, compact: boolean) => ({
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
-  minHeight: compact ? 0 : { xs: 300, sm: 340 },
-  p: compact ? 2 : { xs: 3, sm: 5 },
-  borderRadius: 4,
+  minHeight: compact ? 0 : { xs: 300, sm: 430 },
+  p: compact ? 2 : { xs: 3, sm: 6 },
+  borderRadius: { xs: '32px', sm: '40px' },
   border: 2,
   borderColor: outcome
     ? alpha(outcome_color(theme, outcome), 0.5)
@@ -70,7 +76,7 @@ const face_sx = (theme: Theme, outcome: Outcome | null, compact: boolean) => ({
   bgcolor: outcome
     ? `color-mix(in srgb, ${outcome_color(theme, outcome)} 5%, ${theme.palette.background.paper})`
     : 'background.paper',
-  boxShadow: '0 18px 45px rgba(15, 23, 42, 0.08)',
+  boxShadow: '0 18px 42px rgba(15, 36, 24, 0.07)',
 })
 
 const escape_regex = (text: string) =>
@@ -113,7 +119,13 @@ function SpeakButton({ word }: { word: string }) {
       color="primary"
       aria-label={`Phát âm ${word}`}
       onClick={() => speak(word)}
-      sx={(theme) => ({ bgcolor: alpha(theme.palette.primary.main, 0.08) })}
+      sx={{
+        width: 48,
+        height: 48,
+        borderRadius: '50%',
+        bgcolor: 'secondary.main',
+        '&:hover': { bgcolor: 'secondary.main', opacity: 0.85 },
+      }}
     >
       <VolumeUpRoundedIcon />
     </IconButton>
@@ -127,8 +139,7 @@ function CardBack({ word }: { word: VocabularyWord }) {
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Typography
             variant="h3"
-            fontWeight={750}
-            sx={{ fontSize: { xs: 32, sm: 42 }, wordBreak: 'break-word' }}
+            sx={{ fontSize: { xs: 32, sm: 44 }, wordBreak: 'break-word' }}
           >
             {word.word}
           </Typography>
@@ -136,7 +147,11 @@ function CardBack({ word }: { word: VocabularyWord }) {
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
           {word.pronunciation && (
-            <Typography color="text.secondary" fontSize={17}>
+            <Typography
+              color="text.secondary"
+              fontSize={17}
+              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+            >
               {word.pronunciation}
             </Typography>
           )}
@@ -152,9 +167,8 @@ function CardBack({ word }: { word: VocabularyWord }) {
       <Divider />
       <Typography
         variant="h5"
-        fontWeight={750}
         color="primary"
-        sx={{ fontSize: { xs: 22, sm: 26 } }}
+        sx={{ fontSize: { xs: 24, sm: 30 } }}
       >
         {word.meaning}
       </Typography>
@@ -162,7 +176,7 @@ function CardBack({ word }: { word: VocabularyWord }) {
         <Box
           sx={{
             borderLeft: 3,
-            borderColor: 'primary.light',
+            borderColor: 'accent.main',
             pl: 2,
             py: 0.5,
           }}
@@ -255,63 +269,74 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
 
   if (topic && !error && topic.words.length && !deck.length) {
     return (
-      <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
-        <CheckCircleOutlineRoundedIcon color="success" sx={{ fontSize: 72 }} />
-        <Typography variant="h5" fontWeight={750} mt={2}>
-          {review ? 'Không còn từ nào cần học lại' : 'Bạn đã học hết từ mới'}
-        </Typography>
-        <Typography color="text.secondary" mt={1}>
-          {review
-            ? `Bạn đã trả lời đúng hết các từ của chủ đề ${topic.title}.`
-            : topic.wrong > 0
-              ? `Còn ${topic.wrong} từ sai trong chủ đề ${topic.title}, hãy học lại nhé.`
-              : `Bạn đã hoàn thành chủ đề ${topic.title}.`}
-        </Typography>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          justifyContent="center"
-          spacing={1.5}
-          mt={3}
-        >
-          <Button onClick={() => navigate('/')}>Về trang chủ</Button>
-          {!review && topic.wrong > 0 && (
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<ReplayRoundedIcon />}
-              onClick={() => navigate(`/topics/${topic.id}/review`)}
-            >
-              Học lại {topic.wrong} từ sai
-            </Button>
-          )}
-          <Button
-            variant="contained"
-            startIcon={<QuizOutlinedIcon />}
-            onClick={() => navigate(`/topics/${topic.id}/quiz`)}
-          >
-            Làm quiz
-          </Button>
-        </Stack>
-      </Container>
+      <Box
+        component="main"
+        sx={{
+          minHeight: '100svh',
+          display: 'grid',
+          placeItems: 'center',
+          px: 2,
+          py: 5,
+          bgcolor: 'background.default',
+        }}
+      >
+        <CompletionCard
+          title={
+            review ? 'Không còn từ nào cần học lại' : 'Bạn đã học hết từ mới'
+          }
+          description={
+            review
+              ? `Bạn đã trả lời đúng hết các từ của chủ đề ${topic.title}.`
+              : topic.wrong > 0
+                ? `Còn ${topic.wrong} từ sai trong chủ đề ${topic.title}, hãy học lại nhé.`
+                : `Bạn đã hoàn thành chủ đề ${topic.title}.`
+          }
+          actions={
+            <>
+              <Button onClick={() => navigate('/')}>Về trang chủ</Button>
+              {!review && topic.wrong > 0 && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ReplayRoundedIcon />}
+                  onClick={() => navigate(`/topics/${topic.id}/review`)}
+                >
+                  Học lại {topic.wrong} từ sai
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                startIcon={<HelpOutlineRoundedIcon />}
+                onClick={() => navigate(`/topics/${topic.id}/quiz`)}
+              >
+                Làm quiz
+              </Button>
+            </>
+          }
+        />
+      </Box>
     )
   }
 
   if (error || !topic || !topic.words.length) {
     return (
-      <Container maxWidth="sm" sx={{ py: 12, textAlign: 'center' }}>
-        <Typography variant="h5" fontWeight={750}>
+      <Container maxWidth="sm" sx={{ py: 12 }}>
+        <Alert
+          severity={error ? 'error' : 'info'}
+          action={
+            error && (
+              <Button color="inherit" size="small" onClick={reload}>
+                Thử lại
+              </Button>
+            )
+          }
+        >
           {error
             ? 'Không kết nối được máy chủ'
             : 'Chưa có dữ liệu cho chủ đề này'}
-        </Typography>
-        <Stack direction="row" justifyContent="center" spacing={1.5} mt={3}>
-          {error && (
-            <Button variant="outlined" onClick={reload}>
-              Thử lại
-            </Button>
-          )}
+        </Alert>
+        <Box sx={{ textAlign: 'center', mt: 3 }}>
           <Button onClick={() => navigate('/')}>Về trang chủ</Button>
-        </Stack>
+        </Box>
       </Container>
     )
   }
@@ -365,61 +390,40 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
   const prompt = prompt_of(word, direction)
 
   return (
-    <Box
-      sx={(theme) => ({
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        backgroundImage: `radial-gradient(circle at 15% 10%, ${alpha(theme.palette.primary.main, 0.08)}, transparent 40%), radial-gradient(circle at 85% 90%, ${alpha(theme.palette.secondary.main, 0.06)}, transparent 40%)`,
-      })}
-    >
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <LearningHeader
-        title={review ? `Học lại · ${topic.title}` : topic.title}
+        title={topic.title}
+        subtitle={review ? 'Ôn tập từ vựng' : direction_label(direction)}
         current={finished ? deck.length : word_index + 1}
         total={deck.length}
         counter_label={`Từ ${finished ? deck.length : word_index + 1}/${deck.length}`}
         action={
           <Button
             variant="outlined"
-            startIcon={<QuizOutlinedIcon />}
+            startIcon={<HelpOutlineRoundedIcon />}
             onClick={() => navigate(`/topics/${topic.id}/quiz`)}
           >
-            Làm quiz chủ đề
+            Luyện tập chủ đề
           </Button>
         }
       />
 
       <Container
-        maxWidth="sm"
+        maxWidth="md"
         component="main"
-        sx={{ py: keyboard_open ? 1.5 : { xs: 3, sm: 6 } }}
+        sx={{ py: keyboard_open ? 1.5 : { xs: 4, sm: 6, lg: 8 } }}
       >
         {finished ? (
-          <Paper
-            variant="outlined"
-            sx={{ p: { xs: 3, sm: 6 }, borderRadius: 4, textAlign: 'center' }}
-          >
-            <CheckCircleOutlineRoundedIcon
-              color="success"
-              sx={{ fontSize: 72 }}
-            />
-            <Typography variant="h4" fontWeight={750} mt={2}>
-              {review ? 'Hoàn thành lượt học lại!' : 'Hoàn thành lượt học!'}
-            </Typography>
-            <Typography color="text.secondary" mt={1}>
-              {tally.correct} đúng · {tally.wrong} sai
-            </Typography>
-            {tally.ungraded > 0 && (
-              <Typography color="text.secondary" variant="body2" mt={0.5}>
-                {tally.ungraded} chưa chấm được
-              </Typography>
-            )}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              justifyContent="center"
-              spacing={1.5}
-              mt={4}
-            >
-              {review ? (
+          <CompletionCard
+            title={review ? 'Hoàn thành lượt học lại!' : 'Hoàn thành lượt học!'}
+            description={
+              <>
+                {tally.correct} đúng · {tally.wrong} sai
+                {tally.ungraded > 0 && ` · ${tally.ungraded} chưa chấm được`}
+              </>
+            }
+            actions={
+              review ? (
                 <>
                   <Button
                     variant="outlined"
@@ -450,7 +454,6 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                   {tally.wrong > 0 && (
                     <Button
                       variant="outlined"
-                      color="error"
                       startIcon={<ReplayRoundedIcon />}
                       onClick={() => navigate(`/topics/${topic.id}/review`)}
                     >
@@ -459,15 +462,15 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                   )}
                   <Button
                     variant="contained"
-                    startIcon={<QuizOutlinedIcon />}
+                    startIcon={<HelpOutlineRoundedIcon />}
                     onClick={() => navigate(`/topics/${topic.id}/quiz`)}
                   >
                     Làm quiz
                   </Button>
                 </>
-              )}
-            </Stack>
-          </Paper>
+              )
+            }
+          />
         ) : (
           <>
             {/* Deck: the cards peeking out behind show how many words remain. */}
@@ -479,20 +482,21 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                   content: '""',
                   position: 'absolute',
                   inset: 0,
-                  borderRadius: 4,
-                  border: 2,
+                  borderRadius: { xs: '32px', sm: '40px' },
+                  border: 1,
                   borderColor: theme.palette.divider,
                   bgcolor: 'background.paper',
                 },
                 '&::before': {
                   display: remaining > 1 && !keyboard_open ? 'block' : 'none',
-                  transform: 'translateY(22px) scale(0.92)',
-                  opacity: 0.5,
+                  transform: 'translateY(20px) scale(0.97)',
+                  opacity: 0.75,
+                  boxShadow: '0 10px 24px rgba(15, 36, 24, 0.04)',
                 },
                 '&::after': {
                   display: remaining > 0 && !keyboard_open ? 'block' : 'none',
-                  transform: 'translateY(11px) scale(0.96)',
-                  opacity: 0.8,
+                  transform: 'translateY(10px) scale(0.985)',
+                  opacity: 0.9,
                 },
               })}
             >
@@ -538,19 +542,19 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                       })}
                     >
                       {!keyboard_open && (
-                        <Chip
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          label={word.part_of_speech ?? 'từ vựng'}
-                          sx={{ fontWeight: 650 }}
+                        <AccentChip
+                          label={review ? 'CẦN ÔN TẬP' : 'CHƯA HỌC'}
                         />
                       )}
                       <Typography
                         variant="h2"
-                        fontWeight={750}
                         sx={{
-                          fontSize: keyboard_open ? 34 : { xs: 42, sm: 56 },
+                          fontSize: keyboard_open
+                            ? 34
+                            : { xs: 44, sm: 64, lg: 76 },
+                          fontWeight: 700,
+                          lineHeight: 1.15,
+                          letterSpacing: '-0.055em',
                           wordBreak: 'break-word',
                         }}
                       >
@@ -559,7 +563,11 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                       {direction === 'en_vi' && (
                         <Stack direction="row" alignItems="center" spacing={1}>
                           {word.pronunciation && (
-                            <Typography color="text.secondary" fontSize={18}>
+                            <Typography
+                              color="text.secondary"
+                              fontSize={18}
+                              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                            >
                               {word.pronunciation}
                             </Typography>
                           )}
@@ -582,12 +590,25 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
             </Box>
 
             <Box sx={{ mt: keyboard_open ? 2 : 4 }}>
+              {!keyboard_open && (
+                <Typography
+                  component="label"
+                  htmlFor="flashcard-answer"
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight={600}
+                  sx={{ display: 'block', mb: 1 }}
+                >
+                  {answer_label(direction)}
+                </Typography>
+              )}
               <TextField
+                id="flashcard-answer"
                 fullWidth
                 autoFocus={!is_touch}
                 key={word.id}
                 inputRef={input_ref}
-                placeholder={`${answer_label(direction)}…`}
+                placeholder="Nhập câu trả lời..."
                 slotProps={{
                   htmlInput: { 'aria-label': answer_label(direction) },
                 }}
@@ -602,11 +623,13 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    bgcolor: 'background.paper',
-                    borderRadius: 3,
-                    fontSize: { xs: 18, sm: 22 },
+                    borderRadius: '17px',
+                    fontSize: { xs: 17, sm: 20 },
                   },
-                  '& input': { textAlign: 'center', py: 2 },
+                  '& input': {
+                    textAlign: 'center',
+                    py: keyboard_open ? 1.75 : 2.75,
+                  },
                 }}
               />
               {!grading && (
@@ -615,7 +638,7 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                   color="text.secondary"
                   component="p"
                   textAlign="center"
-                  mt={1}
+                  mt={1.25}
                   sx={{ display: { xs: 'none', sm: 'block' } }}
                 >
                   {answered ? (
@@ -625,7 +648,7 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                     </>
                   ) : (
                     <>
-                      Nhấn <b>Enter</b> để kiểm tra · <b>Esc</b> để bỏ qua
+                      <b>Enter</b>: kiểm tra · <b>Esc</b>: bỏ qua
                     </>
                   )}
                 </Typography>
@@ -639,13 +662,19 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
               <Stack
                 direction="row"
                 justifyContent="space-between"
+                alignItems="center"
                 spacing={1.5}
-                mt={3}
+                mt={3.5}
               >
                 {answered ? (
                   <Box />
                 ) : (
-                  <Button disabled={grading} onClick={handle_skip}>
+                  <Button
+                    size="large"
+                    disabled={grading}
+                    onClick={handle_skip}
+                    sx={{ px: 2.5 }}
+                  >
                     Bỏ qua
                   </Button>
                 )}
@@ -657,10 +686,9 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                     autoFocus
                     size="large"
                     variant="contained"
-                    color={outcome === 'correct' ? 'success' : 'primary'}
                     endIcon={<ArrowForwardRoundedIcon />}
                     onClick={handle_next}
-                    sx={{ px: 4 }}
+                    sx={{ minWidth: 160, px: 3 }}
                   >
                     {is_last ? 'Xem kết quả' : 'Tiếp'}
                   </Button>
@@ -671,7 +699,11 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
                     variant="contained"
                     disabled={grading || !answer_input.trim()}
                     onClick={handle_check}
-                    sx={{ px: 4 }}
+                    sx={{
+                      minWidth: { xs: 160, sm: 208 },
+                      minHeight: 56,
+                      px: 3.5,
+                    }}
                   >
                     Kiểm tra
                   </Button>
