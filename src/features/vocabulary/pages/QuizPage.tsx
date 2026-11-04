@@ -23,10 +23,7 @@ import { LearningHeader } from '../components/LearningHeader'
 import { useStudyDirection } from '../hooks/useStudyDirection'
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer'
 import { useTopic } from '../hooks/useTopic'
-import type {
-  SubmitAnswerResult,
-  VocabularyWord,
-} from '../types/vocabulary'
+import type { SubmitAnswerResult, VocabularyWord } from '../types/vocabulary'
 import { pick_quiz_words } from '../utils/createQuiz'
 import {
   answer_label,
@@ -112,7 +109,10 @@ export function QuizPage() {
     last_answer.current = answer
     const graded = await submit(question.id, answer)
     if (!graded) return
-    set_answers((current) => [...current, { word: question, answer, result: graded }])
+    set_answers((current) => [
+      ...current,
+      { word: question, answer, result: graded },
+    ])
     // A skip has nothing to review, so move on right away.
     if (!answer) go_next()
   }
@@ -178,7 +178,11 @@ export function QuizPage() {
                 KẾT QUẢ CỦA BẠN
               </Typography>
               <Typography
-                color={score >= questions.length * 0.8 ? 'success.main' : 'primary.main'}
+                color={
+                  score >= questions.length * 0.8
+                    ? 'success.main'
+                    : 'primary.main'
+                }
                 fontSize={{ xs: 64, sm: 80 }}
                 lineHeight={1.2}
                 fontWeight={800}
@@ -254,7 +258,9 @@ export function QuizPage() {
                         }
                       >
                         {answer ? `Bạn trả lời: ${answer}` : 'Đã bỏ qua'}
-                        {answer && graded.is_correct === null && ' (chưa chấm được)'}
+                        {answer &&
+                          graded.is_correct === null &&
+                          ' (chưa chấm được)'}
                       </Typography>
                       {graded.is_correct !== true && (
                         <Typography variant="body2" color="text.secondary">
@@ -284,7 +290,13 @@ export function QuizPage() {
                 ? 'Nghĩa tiếng Việt của từ này là gì?'
                 : 'Từ tiếng Anh của nghĩa này là gì?'}
             </Typography>
-            <Stack direction="row" alignItems="center" spacing={1.5} mt={3} mb={4}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1.5}
+              mt={3}
+              mb={4}
+            >
               <Typography
                 variant="h3"
                 fontWeight={750}
@@ -329,7 +341,8 @@ export function QuizPage() {
               placeholder="Gõ câu trả lời rồi nhấn Enter..."
               onChange={(event) => set_answer_input(event.target.value)}
               onKeyDown={(event) => {
-                if (event.nativeEvent.isComposing || event.keyCode === 229) return
+                if (event.nativeEvent.isComposing || event.keyCode === 229)
+                  return
                 if (event.key === 'Enter') handle_check_or_continue()
               }}
               error={result?.is_correct === false}

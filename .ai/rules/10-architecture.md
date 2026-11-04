@@ -1,0 +1,51 @@
+---
+title: Architecture & folder structure
+description: Feature-based folder layout and dependency direction between layers
+globs: ['src/**']
+always_apply: true
+---
+
+# Architecture
+
+## Feature-based layout
+
+```
+src/
+├── App.tsx              # routes only (lazy-loaded pages)
+├── main.tsx             # bootstrapping, providers
+├── theme.ts             # MUI theme
+└── features/
+    └── <feature>/
+        ├── components/  # presentational UI for this feature
+        ├── context/     # React context providers (if needed)
+        ├── hooks/       # data + state hooks (useXxx.ts)
+        ├── pages/       # route-level components (XxxPage.tsx)
+        ├── services/    # API calls, storage — no React
+        ├── types/       # TS types shared inside the feature
+        └── utils/       # pure functions, no React, no I/O
+```
+
+- New feature → new folder under `src/features/`. Only create the
+  sub-folders you need.
+- Code used by 2+ features moves to `src/shared/<same sub-folders>`.
+
+## Dependency direction
+
+```
+pages → components → hooks → services → (fetch / storage)
+                       ↘ utils, types (usable from any layer)
+```
+
+- `services/` and `utils/` never import React.
+- Components never call `fetch` / `api_fetch` directly — go through a hook
+  or service.
+- Cross-feature imports go through that feature's public pieces
+  (services, hooks, types).
+- Known exception: `vocabulary` imports `auth/services/apiClient`. It is
+  planned to move to `src/shared/services/`; until then import it from
+  `auth`, and don't add more cross-feature imports like it.
+
+## Routing
+
+- Every page is registered in `App.tsx` with `lazy()` + named-export remap.
+- Protected pages are wrapped in `<RequireAuth>`.

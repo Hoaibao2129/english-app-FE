@@ -1,0 +1,3 @@
+{
+  "targets": ["claude", "agents", "cursor", "copilot", "windsurf"]
+}

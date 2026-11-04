@@ -1,0 +1,30 @@
+---
+title: UI, styling & copy
+description: MUI usage, theming, responsiveness and Vietnamese UI text
+globs: ['src/**/*.tsx', 'src/theme.ts']
+always_apply: false
+---
+
+# UI & styling
+
+## MUI
+
+- Build UI from MUI components (`Stack`, `Box`, `Paper`, `Typography`, ...).
+- Style with the `sx` prop. No CSS files, no inline `style`, no
+  `styled()` unless a component is reused in many places.
+- Colors, radii, typography come from `theme.ts` — use palette keys
+  (`primary.main`, `text.secondary`), never hard-coded hex in components.
+- Icons: `@mui/icons-material`, prefer the `*Rounded` variants, one
+  default import per icon (`import XIcon from '@mui/icons-material/XRounded'`).
+
+## Responsive / PWA
+
+- Mobile-first. Use MUI breakpoints in `sx` (`{ xs: ..., md: ... }`).
+- Check the layout with the on-screen keyboard open (`useKeyboardOpen`).
+
+## Copy
+
+- All user-facing text is **Vietnamese**; code, comments and identifiers
+  are English.
+- Show loading (`CircularProgress`) and error (`Alert`) states for every
+  async view.

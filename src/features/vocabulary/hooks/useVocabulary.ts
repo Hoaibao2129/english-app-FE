@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { vocabulary_service } from '../services/vocabularyService'
-import type {
-  Summary,
-  TopicFilter,
-  VocabularyTopic,
-} from '../types/vocabulary'
+import type { Summary, TopicFilter, VocabularyTopic } from '../types/vocabulary'
 
 export function useVocabulary() {
   const [topics, set_topics] = useState<VocabularyTopic[]>([])
@@ -20,7 +16,10 @@ export function useVocabulary() {
 
     set_loading(true)
     set_error(null)
-    Promise.all([vocabulary_service.get_topics(), vocabulary_service.get_summary()])
+    Promise.all([
+      vocabulary_service.get_topics(),
+      vocabulary_service.get_summary(),
+    ])
       .then(([topic_data, summary_data]) => {
         if (!active) return
         set_topics(topic_data)

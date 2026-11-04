@@ -8,7 +8,8 @@ const LEGACY_STORAGE_KEY = 'study-english:direction'
 function read_direction(): Direction {
   try {
     const stored =
-      localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
+      localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_STORAGE_KEY)
     if (stored === 'en_vi' || stored === 'vi_en') return stored
   } catch {
     // Storage unavailable; fall back to the default.
