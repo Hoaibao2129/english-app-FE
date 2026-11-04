@@ -4,17 +4,15 @@ import {
   AppBar,
   Box,
   Button,
-  Container,
-  IconButton,
   LinearProgress,
   Stack,
-  Toolbar,
   Typography,
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 
 interface LearningHeaderProps {
   title: string
+  subtitle?: string
   current: number
   total: number
   counter_label?: string
@@ -24,6 +22,7 @@ interface LearningHeaderProps {
 
 export function LearningHeader({
   title,
+  subtitle,
   current,
   total,
   counter_label,
@@ -37,68 +36,83 @@ export function LearningHeader({
       position="sticky"
       color="inherit"
       elevation={0}
-      sx={{ borderBottom: 1, borderColor: 'divider' }}
+      sx={{
+        borderBottom: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
     >
-      <Container maxWidth="md">
-        <Toolbar disableGutters sx={{ minHeight: { xs: 68, sm: 76 } }}>
-          <IconButton
-            onClick={() => navigate('/')}
-            aria-label="Về trang chủ"
-            sx={{ display: { xs: 'inline-flex', sm: 'none' }, mr: 0.5 }}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-          <Button
-            color="inherit"
-            startIcon={<ArrowBackRoundedIcon />}
-            onClick={() => navigate('/')}
-            sx={{
-              display: { xs: 'none', sm: 'inline-flex' },
-              mr: 2,
-              color: 'text.secondary',
-            }}
-          >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={{ xs: 1.5, sm: 2 }}
+        sx={{
+          mx: 'auto',
+          width: '100%',
+          maxWidth: 1152,
+          minHeight: { xs: 64, sm: 72 },
+          px: { xs: 2, sm: 3 },
+          py: 1.5,
+        }}
+      >
+        <Button
+          color="inherit"
+          startIcon={<ArrowBackRoundedIcon />}
+          onClick={() => navigate('/')}
+          aria-label="Thoát về trang chủ"
+          sx={{
+            flexShrink: 0,
+            px: 1.25,
+            color: 'text.secondary',
+            '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } },
+          }}
+        >
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
             Thoát
-          </Button>
+          </Box>
+        </Button>
+        <Box sx={{ minWidth: 0, width: { xs: 110, sm: 200, lg: 260 } }}>
           <Typography
-            fontWeight={750}
             noWrap
-            sx={{ minWidth: 0, width: { xs: 120, sm: 180 } }}
+            sx={{ fontSize: { xs: 14, sm: 16 }, fontWeight: 600 }}
           >
             {title}
           </Typography>
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={{ xs: 1, sm: 2 }}
-            sx={{ flex: 1, ml: { xs: 1, sm: 2 } }}
-          >
-            <LinearProgress
-              variant="determinate"
-              value={total ? (current / total) * 100 : 0}
-              sx={{ flex: 1, height: 7, borderRadius: 5 }}
-            />
+          {subtitle && (
             <Typography
-              variant="body2"
+              variant="caption"
               color="text.secondary"
-              fontWeight={700}
-              whiteSpace="nowrap"
+              noWrap
+              component="p"
             >
-              {counter_label ?? `${current}/${total}`}
+              {subtitle}
             </Typography>
-          </Stack>
-          {stats && (
-            <Box sx={{ display: { xs: 'none', md: 'block' }, ml: 2 }}>
-              {stats}
-            </Box>
           )}
-          {action && (
-            <Box sx={{ display: { xs: 'none', sm: 'block' }, ml: 2 }}>
-              {action}
-            </Box>
-          )}
-        </Toolbar>
-      </Container>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={total ? (current / total) * 100 : 0}
+          aria-label="Tiến độ lượt học"
+          sx={{ flex: 1, minWidth: 64 }}
+        />
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          fontWeight={600}
+          whiteSpace="nowrap"
+          sx={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {counter_label ?? `${current}/${total}`}
+        </Typography>
+        {stats && (
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>{stats}</Box>
+        )}
+        {action && (
+          <Box sx={{ display: { xs: 'none', sm: 'block' }, flexShrink: 0 }}>
+            {action}
+          </Box>
+        )}
+      </Stack>
     </AppBar>
   )
 }

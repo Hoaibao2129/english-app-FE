@@ -36,22 +36,22 @@ function Banner({ tone, icon, title, detail, action }: BannerProps) {
             : theme.palette[tone].main
         return {
           mt: 2.5,
-          px: 2,
-          py: 1.5,
-          borderRadius: 2,
+          px: { xs: 2.5, sm: 3 },
+          py: 2,
+          borderRadius: '16px',
           border: 1,
-          borderColor: alpha(color, 0.3),
-          bgcolor: alpha(color, 0.08),
+          borderColor: alpha(color, 0.35),
+          bgcolor: alpha(color, 0.05),
           color,
           animation: `${fade_up} 0.25s ease-out`,
           ...reduced_motion,
         }
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.5}>
+      <Stack direction="row" alignItems="center" spacing={2}>
         <Box sx={{ display: 'flex', fontSize: 32 }}>{icon}</Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography fontWeight={750} fontSize={17}>
+          <Typography fontWeight={700} fontSize={18}>
             {title}
           </Typography>
           {detail && (

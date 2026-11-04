@@ -1,21 +1,25 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import LockRoundedIcon from '@mui/icons-material/LockRounded'
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded'
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded'
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
   Link,
-  Paper,
-  TextField,
-  Typography,
+  Stack,
 } from '@mui/material'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
 import {
   Link as RouterLink,
   Navigate,
   useLocation,
   useNavigate,
 } from 'react-router-dom'
+import { AuthLayout } from '../components/AuthLayout'
+import { AuthTextField } from '../components/AuthTextField'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../services/authService'
 
@@ -70,47 +74,82 @@ export function RegisterPage() {
   }
 
   return (
-    <Box
-      sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 2 }}
+    <AuthLayout
+      eyebrow="BẮT ĐẦU HÀNH TRÌNH"
+      title="Tạo tài khoản mới"
+      description="Mỗi ngày một chút — bắt đầu từ hôm nay nhé."
+      footer={
+        <>
+          Đã có tài khoản?{' '}
+          <Link
+            component={RouterLink}
+            to="/login"
+            state={location.state}
+            underline="hover"
+            fontWeight={600}
+          >
+            Đăng nhập
+          </Link>
+        </>
+      }
     >
-      <Paper
+      <Box
         component="form"
         onSubmit={handle_submit}
-        sx={{ p: 4, width: '100%', maxWidth: 400, display: 'grid', gap: 2 }}
+        aria-labelledby="auth-heading"
       >
-        <Typography variant="h5" fontWeight={800}>
-          Đăng ký
-        </Typography>
-        {error && <Alert severity="error">{error}</Alert>}
-        <TextField
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(event) => set_email(event.target.value)}
-          required
-          autoComplete="email"
-        />
-        <TextField
-          label="Mật khẩu"
-          type="password"
-          value={password}
-          onChange={(event) => set_password(event.target.value)}
-          required
-          autoComplete="new-password"
-        />
-        <TextField
-          label="Tên hiển thị (không bắt buộc)"
-          value={display_name}
-          onChange={(event) => set_display_name(event.target.value)}
-          autoComplete="name"
-        />
-        <Button type="submit" variant="contained" disabled={submitting}>
-          Đăng ký
+        <Stack spacing={2.5}>
+          {error && <Alert severity="error">{error}</Alert>}
+          <AuthTextField
+            id="display_name"
+            label="Tên hiển thị (không bắt buộc)"
+            icon={<PersonOutlineRoundedIcon />}
+            placeholder="Tên của bạn"
+            value={display_name}
+            on_change={set_display_name}
+            auto_complete="name"
+          />
+          <AuthTextField
+            id="email"
+            label="Email"
+            type="email"
+            icon={<MailOutlineRoundedIcon />}
+            placeholder="ban@email.com"
+            value={email}
+            on_change={set_email}
+            auto_complete="email"
+            required
+          />
+          <AuthTextField
+            id="password"
+            label="Mật khẩu"
+            type="password"
+            icon={<LockRoundedIcon />}
+            placeholder="Nhập mật khẩu"
+            value={password}
+            on_change={set_password}
+            auto_complete="new-password"
+            required
+          />
+        </Stack>
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          fullWidth
+          disabled={submitting}
+          endIcon={
+            submitting ? (
+              <CircularProgress size={18} color="inherit" />
+            ) : (
+              <ArrowForwardRoundedIcon />
+            )
+          }
+          sx={{ mt: 3.5 }}
+        >
+          Đăng ký miễn phí
         </Button>
-        <Link component={RouterLink} to="/login" state={location.state}>
-          Đã có tài khoản? Đăng nhập
-        </Link>
-      </Paper>
-    </Box>
+      </Box>
+    </AuthLayout>
   )
 }
