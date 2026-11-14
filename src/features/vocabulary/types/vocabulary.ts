@@ -26,6 +26,7 @@ export interface VocabularyTopic {
   wrong: number
   not_started: number
   status: TopicStatus
+  direction: Direction
 }
 
 export interface VocabularyTopicDetail extends VocabularyTopic {
@@ -52,4 +53,5 @@ export interface Summary {
   learned_words: number
   wrong_words: number
   not_started: number
+  direction: Direction
 }

@@ -1,4 +1,5 @@
 import type {
+  Direction,
   SubmitAnswerInput,
   SubmitAnswerResult,
   Summary,
@@ -12,17 +13,25 @@ async function request_json<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
-export const vocabulary_service = {
-  get_topics: () => request_json<VocabularyTopic[]>('/vocabulary/topics'),
+/** Builds `?direction=...`; omitted direction means "both directions". */
+function direction_query(direction?: Direction) {
+  return direction ? `?${new URLSearchParams({ direction }).toString()}` : ''
+}
 
-  get_topic: (id: string) =>
-    request_json<VocabularyTopicDetail>(
-      `/vocabulary/topics/${encodeURIComponent(id)}`,
+export const vocabulary_service = {
+  get_topics: (direction: Direction) =>
+    request_json<VocabularyTopic[]>(
+      `/vocabulary/topics${direction_query(direction)}`,
     ),
 
-  get_topic_review: (id: string) =>
+  get_topic: (id: string, direction: Direction) =>
     request_json<VocabularyTopicDetail>(
-      `/vocabulary/topics/${encodeURIComponent(id)}/review`,
+      `/vocabulary/topics/${encodeURIComponent(id)}${direction_query(direction)}`,
+    ),
+
+  get_topic_review: (id: string, direction: Direction) =>
+    request_json<VocabularyTopicDetail>(
+      `/vocabulary/topics/${encodeURIComponent(id)}/review${direction_query(direction)}`,
     ),
 
   submit_answer: (input: SubmitAnswerInput) =>
@@ -31,15 +40,21 @@ export const vocabulary_service = {
       body: JSON.stringify(input),
     }),
 
-  get_summary: () => request_json<Summary>('/vocabulary/summary'),
+  get_summary: (direction: Direction) =>
+    request_json<Summary>(`/vocabulary/summary${direction_query(direction)}`),
 
-  async reset_progress(): Promise<void> {
-    await api_fetch('/vocabulary/progress', { method: 'DELETE' })
-  },
-
-  async reset_topic(id: string): Promise<void> {
-    await api_fetch(`/vocabulary/topics/${encodeURIComponent(id)}/progress`, {
+  /** Without a direction, progress in both directions is cleared. */
+  async reset_progress(direction?: Direction): Promise<void> {
+    await api_fetch(`/vocabulary/progress${direction_query(direction)}`, {
       method: 'DELETE',
     })
+  },
+
+  /** Without a direction, the topic's progress in both directions is cleared. */
+  async reset_topic(id: string, direction?: Direction): Promise<void> {
+    await api_fetch(
+      `/vocabulary/topics/${encodeURIComponent(id)}/progress${direction_query(direction)}`,
+      { method: 'DELETE' },
+    )
   },
 }

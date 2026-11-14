@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { vocabulary_service } from '../services/vocabularyService'
-import type { Summary, TopicFilter, VocabularyTopic } from '../types/vocabulary'
+import type {
+  Direction,
+  Summary,
+  TopicFilter,
+  VocabularyTopic,
+} from '../types/vocabulary'
 
-export function useVocabulary() {
+/** Topics and summary are fetched for `direction`; switching it re-fetches. */
+export function useVocabulary(direction: Direction) {
   const [topics, set_topics] = useState<VocabularyTopic[]>([])
   const [summary, set_summary] = useState<Summary | null>(null)
   const [loading, set_loading] = useState(true)
@@ -17,8 +23,8 @@ export function useVocabulary() {
     set_loading(true)
     set_error(null)
     Promise.all([
-      vocabulary_service.get_topics(),
-      vocabulary_service.get_summary(),
+      vocabulary_service.get_topics(direction),
+      vocabulary_service.get_summary(direction),
     ])
       .then(([topic_data, summary_data]) => {
         if (!active) return
@@ -36,21 +42,23 @@ export function useVocabulary() {
     return () => {
       active = false
     }
-  }, [reload_key])
+  }, [direction, reload_key])
 
   const reload = useCallback(() => set_reload_key((key) => key + 1), [])
 
+  // Clears progress in both directions.
   const reset_progress = useCallback(async () => {
     await vocabulary_service.reset_progress()
     reload()
   }, [reload])
 
+  // Clears the topic's progress in the current direction only.
   const reset_topic = useCallback(
     async (topic_id: string) => {
-      await vocabulary_service.reset_topic(topic_id)
+      await vocabulary_service.reset_topic(topic_id, direction)
       reload()
     },
-    [reload],
+    [direction, reload],
   )
 
   const filtered_topics = useMemo(() => {
