@@ -39,8 +39,8 @@ interface QuizAnswer {
 export function QuizPage() {
   const { topic_id = '' } = useParams()
   const navigate = useNavigate()
-  const { topic, loading, error, reload } = useTopic(topic_id)
   const [direction] = useStudyDirection()
+  const { topic, loading, error, reload } = useTopic(topic_id, direction)
   const { grading, failed, result, submit, clear } = useSubmitAnswer(
     'quiz',
     direction,
@@ -360,6 +360,8 @@ export function QuizPage() {
               id="quiz-answer"
               key={question.id}
               fullWidth
+              // Hide the browser's history of previously typed answers.
+              autoComplete="off"
               autoFocus
               value={answer_input}
               disabled={grading || answered}

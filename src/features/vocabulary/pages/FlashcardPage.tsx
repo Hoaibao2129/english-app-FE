@@ -202,8 +202,12 @@ function CardBack({ word }: { word: VocabularyWord }) {
 export function FlashcardPage({ review = false }: { review?: boolean }) {
   const { topic_id = '' } = useParams()
   const navigate = useNavigate()
-  const { topic, loading, error, reload } = useTopic(topic_id, review)
   const [direction] = useStudyDirection()
+  const { topic, loading, error, reload } = useTopic(
+    topic_id,
+    direction,
+    review,
+  )
   const { grading, failed, result, submit, clear } = useSubmitAnswer(
     review ? 'review' : 'flashcard',
     direction,
@@ -605,6 +609,8 @@ export function FlashcardPage({ review = false }: { review?: boolean }) {
               <TextField
                 id="flashcard-answer"
                 fullWidth
+                // Hide the browser's history of previously typed answers.
+                autoComplete="off"
                 autoFocus={!is_touch}
                 key={word.id}
                 inputRef={input_ref}

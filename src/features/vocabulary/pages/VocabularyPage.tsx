@@ -25,6 +25,7 @@ import { VocabularyHeader } from '../components/VocabularyHeader'
 import { useStudyDirection } from '../hooks/useStudyDirection'
 import { useVocabulary } from '../hooks/useVocabulary'
 import type { TopicFilter, VocabularyTopic } from '../types/vocabulary'
+import { direction_label } from '../utils/direction'
 
 const filters: { value: TopicFilter; label: string }[] = [
   { value: 'all', label: 'Tất cả' },
@@ -36,6 +37,7 @@ const filters: { value: TopicFilter; label: string }[] = [
 export function VocabularyPage() {
   const navigate = useNavigate()
   const [mobile_navigation_open, set_mobile_navigation_open] = useState(false)
+  const [direction, set_direction] = useStudyDirection()
   const {
     topics,
     loading,
@@ -49,8 +51,7 @@ export function VocabularyPage() {
     reset_progress,
     reset_topic,
     reload,
-  } = useVocabulary()
-  const [direction, set_direction] = useStudyDirection()
+  } = useVocabulary(direction)
   const [reset_error, set_reset_error] = useState(false)
 
   const [topic_to_reset, set_topic_to_reset] = useState<VocabularyTopic | null>(
@@ -309,8 +310,9 @@ export function VocabularyPage() {
         <DialogTitle>Reset chủ đề này?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Toàn bộ tiến độ của chủ đề <b>{topic_to_reset?.title}</b> sẽ bị xoá
-            để bạn học lại từ đầu. Các chủ đề khác không bị ảnh hưởng.
+            Tiến độ chiều <b>{direction_label(direction)}</b> của chủ đề{' '}
+            <b>{topic_to_reset?.title}</b> sẽ bị xoá để bạn học lại từ đầu.
+            Chiều còn lại và các chủ đề khác không bị ảnh hưởng.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
