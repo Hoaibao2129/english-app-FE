@@ -21,6 +21,9 @@ interface AuthTextFieldProps {
   auto_complete?: string
   required?: boolean
   helper_text?: string
+  error?: boolean
+  input_mode?: 'text' | 'email' | 'numeric'
+  max_length?: number
 }
 
 // Label above the input, leading icon and, for passwords, a show/hide toggle.
@@ -35,6 +38,9 @@ export function AuthTextField({
   auto_complete,
   required = false,
   helper_text,
+  error = false,
+  input_mode,
+  max_length,
 }: AuthTextFieldProps) {
   const [visible, set_visible] = useState(false)
   const is_password = type === 'password'
@@ -58,8 +64,11 @@ export function AuthTextField({
         autoComplete={auto_complete}
         required={required}
         helperText={helper_text}
+        error={error}
         slotProps={{
           htmlInput: {
+            inputMode: input_mode,
+            maxLength: max_length,
             autoCapitalize: type === 'email' ? 'none' : undefined,
             spellCheck: type === 'email' ? false : undefined,
           },
