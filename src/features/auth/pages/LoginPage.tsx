@@ -26,9 +26,12 @@ export function LoginPage() {
   const { status, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from =
-    (location.state as { from?: { pathname: string; search?: string } } | null)
-      ?.from ?? null
+  const location_state = location.state as {
+    from?: { pathname: string; search?: string }
+    password_reset?: boolean
+  } | null
+  const from = location_state?.from ?? null
+  const password_reset = location_state?.password_reset === true
   const target = from ? `${from.pathname}${from.search ?? ''}` : '/'
 
   const [email, set_email] = useState('')
@@ -93,6 +96,11 @@ export function LoginPage() {
       >
         <Stack spacing={2.5}>
           {error && <Alert severity="error">{error}</Alert>}
+          {!error && password_reset && (
+            <Alert severity="success">
+              Đổi mật khẩu thành công, hãy đăng nhập bằng mật khẩu mới
+            </Alert>
+          )}
           <AuthTextField
             id="email"
             label="Email"
@@ -116,6 +124,17 @@ export function LoginPage() {
             required
           />
         </Stack>
+        <Box sx={{ mt: 1.5, textAlign: 'right' }}>
+          <Link
+            component={RouterLink}
+            to="/forgot-password"
+            underline="hover"
+            fontWeight={600}
+            sx={{ fontSize: 14 }}
+          >
+            Quên mật khẩu?
+          </Link>
+        </Box>
         <Button
           type="submit"
           variant="contained"

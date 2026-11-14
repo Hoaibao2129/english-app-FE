@@ -1,5 +1,10 @@
 import { api_fetch } from './apiClient'
 import { token_storage } from './tokenStorage'
+import type {
+  ForgotPasswordResult,
+  ResetPasswordInput,
+  VerifyOtpResult,
+} from '../types/passwordReset'
 
 export const API_URL =
   import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
@@ -19,24 +24,35 @@ export interface AuthResult {
 
 export class ApiError extends Error {
   status: number
+  /** Parsed JSON error body, for endpoints that return extra fields. */
+  data: Record<string, unknown> | null
 
-  constructor(status: number, message: string) {
+  constructor(
+    status: number,
+    message: string,
+    data: Record<string, unknown> | null = null,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.data = data
   }
 }
 
 export async function read_api_error(response: Response): Promise<ApiError> {
   let message = `Request failed with status ${response.status}`
+  let data: Record<string, unknown> | null = null
   try {
-    const data = (await response.json()) as { message?: string | string[] }
-    if (Array.isArray(data.message)) message = data.message.join(', ')
-    else if (typeof data.message === 'string') message = data.message
+    const body = (await response.json()) as unknown
+    if (body && typeof body === 'object') {
+      data = body as Record<string, unknown>
+      if (Array.isArray(data.message)) message = data.message.join(', ')
+      else if (typeof data.message === 'string') message = data.message
+    }
   } catch {
     // non-JSON body
   }
-  return new ApiError(response.status, message)
+  return new ApiError(response.status, message, data)
 }
 
 async function post_json(path: string, body: unknown): Promise<Response> {
@@ -118,6 +134,27 @@ export const auth_service = {
       token_storage.clear_tokens()
       token_storage.broadcast_logout()
     }
+  },
+
+  // Forgot-password endpoints are public: plain fetch, no bearer token.
+  async forgot_password(email: string): Promise<ForgotPasswordResult> {
+    const response = await post_json('/auth/forgot-password', { email })
+    return (await response.json()) as ForgotPasswordResult
+  },
+
+  async verify_reset_otp(input: {
+    email: string
+    otp: string
+  }): Promise<VerifyOtpResult> {
+    const response = await post_json('/auth/forgot-password/verify', input)
+    return (await response.json()) as VerifyOtpResult
+  },
+
+  async reset_password(input: ResetPasswordInput): Promise<void> {
+    await post_json('/auth/reset-password', input)
+    // the backend revoked every refresh token of this user
+    token_storage.clear_tokens()
+    token_storage.broadcast_logout()
   },
 
   async get_me(): Promise<AuthUser> {
